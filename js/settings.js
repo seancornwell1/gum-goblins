@@ -51,14 +51,16 @@ export function openSettings(ctx) {
     ctx.onSettings(false);
   };
   const updateStatus = () => {
-    const s = ctx.trackerStatus();
-    if (!s) { statusLine.replaceChildren(h('span', {}, 'Camera check runs during a routine.')); return; }
-    if (s.noCamera) { statusLine.replaceChildren(h('b', { class: 'no' }, 'Camera off — timers run on their own.')); return; }
+    const all = ctx.trackerStatus();
+    if (!all) { statusLine.replaceChildren(h('span', {}, 'Camera check runs during a routine.')); return; }
+    if (all[0].noCamera) { statusLine.replaceChildren(h('b', { class: 'no' }, 'Camera off — timers run on their own.')); return; }
+    const names = ctx.playerNames();
     const mark = (ok, yes, no) => h('b', { class: ok ? 'ok' : 'no' }, ok ? yes : no);
-    statusLine.replaceChildren(
+    statusLine.replaceChildren(...all.map((s, p) => h('div', { class: 'status-line' },
+      all.length > 1 ? h('span', {}, `${names[p]}:`) : null,
       mark(s.faceNow, '✓ Face found', '✗ No face'),
       mark(s.inView, '✓ In view', '✗ Out of view'),
-      mark(s.movingNow, '✓ Movement', '✗ Still'));
+      mark(s.movingNow, '✓ Movement', '✗ Still'))));
   };
   const statusTimer = setInterval(updateStatus, 250);
   updateStatus();
@@ -82,6 +84,14 @@ export function openSettings(ctx) {
         h('button', { class: 'primary', onclick: () => { close(); ctx.nextStep(); } }, 'Next step ⏭'),
         h('button', { onclick: () => { close(); ctx.endRoutine(); } }, 'End and go home')),
       h('small', {}, '“Next step” finishes the current step as if it went well — use it when the camera struggles.')) : null,
+    h('div', { class: 'set' }, h('span', { class: 't' }, 'Players'),
+      h('div', { class: 'names' }, [0, 1].map(i => h('input', {
+        type: 'text', value: store.profile(i).name, maxlength: 14, 'aria-label': `Player ${i + 1} name`,
+        onchange: e => { store.setName(i, e.target.value); ctx.refreshHome(); },
+      }))),
+      h('span', { class: 't', style: { marginTop: '10px' } }, 'Second player'),
+      seg('secondPlayer', [true, false], v => (v ? 'On' : 'Off'), () => ctx.refreshHome()),
+      h('small', {}, 'With two players, each has their own hero, collection and calendar. To brush together, stand side by side: player 1 on the left of the mirror, player 2 on the right.')),
     h('div', { class: 'set' }, h('span', { class: 't' }, 'Brushing length'),
       seg('brushMinutes', [1, 2, 3], v => `${v} min`),
       h('small', {}, 'Six zones, always in the same order; each zone gets an equal share.')),

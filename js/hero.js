@@ -16,5 +16,6 @@ export function setPose(el, pose, look = store.hero) {
   if (look.hat !== 'none' && pose !== 'sleep') layers.push(ART.hero(`hat_${look.hat}`));
   if (heroParts.brushPoses.includes(pose)) layers.push(ART.hero(`brush_${look.brush}_${pose}`));
   el.replaceChildren(...layers.map(src => img(src)));
+  if (el.dataset.name) el.append(h('span', { class: 'hero-tag' }, el.dataset.name));
   el.dataset.pose = pose;
 }

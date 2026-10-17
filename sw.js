@@ -2,7 +2,7 @@
 // from the cache. Nothing is ever sent anywhere. tools/build_sw.py fills in
 // the file list and version.
 
-const VERSION = '6e8432afefc0';
+const VERSION = '8ee2eedcc2b2';
 const FILES = [
   "assets/audio/fx_chime.mp3",
   "assets/audio/fx_defeat.mp3",
@@ -360,7 +360,7 @@ const FILES = [
   "vendor/mediapipe/wasm/vision_wasm_internal.wasm",
   "vendor/mediapipe/wasm/vision_wasm_nosimd_internal.js",
   "vendor/mediapipe/wasm/vision_wasm_nosimd_internal.wasm",
-  "vendor/models/blaze_face_short_range.tflite"
+  "vendor/models/blaze_face_full_range.tflite"
   ];
 
 const CACHE = `gum-goblins-${VERSION}`;

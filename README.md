@@ -67,6 +67,23 @@ reward screen.
 
 Brushing starts with a 5-4-3-2-1 countdown.
 
+**Two players:** each kid has their own profile: hero, emoji collection,
+calendar and unlocks. Oliver's existing progress moved into his profile
+automatically. When you start any mode, a "Who's brushing?" picker offers
+Oliver, his sister or **Both**. To brush together, they stand side by side at
+the sink: whoever is on the left of the mirror is player 1, on the right is
+player 2.
+
+- Each has their own hero (with a name tag), and each hero's bolts follow that
+  kid's own brushing. Goblins come twice as fast, because there are two shooters.
+- The zone timer runs while either of them is brushing. If either steps out of
+  view, everything pauses and the screen says who to wait for.
+- Teamwork: the big goblin is beaten if either kid brushed well enough. Each
+  kid's emoji depends only on their own brushing.
+- They share one photo, with both new emoji as stickers, and the tray offers
+  emoji from both collections. Collection and calendar have a tab for each kid.
+- Rename the second player, or turn the second player off, in parent settings.
+
 There's no narration, just a few short words on screen ("Big Goblin!", "Floss
 time!") and the zone name in the guide.
 
@@ -155,15 +172,17 @@ python3 -m http.server 8123          # then open http://localhost:8123/
 ```
 
 Testing aids: `?sim=1` fakes the camera (press `f` to toggle face in view, `m`
-to toggle movement) and `?fast=10` runs the timers 10× faster. To run the
+to toggle movement; `g` and `n` do the same for player 2) and `?fast=10` runs
+the timers 10× faster. To run the
 end-to-end test (needs Playwright):
 
 ```sh
 NODE_PATH=$(npm root -g) node tests/flow.mjs
 ```
 
-Face detection uses MediaPipe's on-device BlazeFace model, which is vendored in
-`vendor/` so it works offline.
+Face detection uses MediaPipe's on-device BlazeFace full-range model (it finds
+two smaller faces side by side, which the short-range selfie model can't).
+It's vendored in `vendor/` so it works offline.
 
 ## Privacy
 

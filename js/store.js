@@ -1,4 +1,8 @@
 // Everything is kept in this phone's localStorage. Nothing is ever uploaded.
+//
+// Settings and tonight's world are shared. Each kid has a profile with their
+// own hero, emoji collection, calendar and unlocks. Most of the game reads and
+// writes the active profile; store.use(i) switches it.
 
 const KEY = 'gumgoblins.v1';
 
@@ -13,23 +17,34 @@ export const DEFAULT_SETTINGS = {
   volFx: 0.7,
   camera: true,
   sensitivity: 'medium',
+  secondPlayer: true,
 };
 
-function blank() {
+const KID_FIELDS = ['collection', 'nights', 'swish', 'mornings', 'hero', 'bigEscaped', 'seenUnlocks'];
+
+function blankKid(name, cape) {
   return {
-    settings: { ...DEFAULT_SETTINGS },
+    name,
     collection: {},   // emoji id -> night it was earned
     nights: {},       // night -> { passed, emoji, world }
     swish: {},        // night -> true (gold star)
-    mornings: {},     // night -> true (sun sticker)
-    hero: { cape: 'blue', hat: 'none', brush: 'pink' },
+    mornings: {},     // day -> true (sun sticker)
+    hero: { cape, hat: 'none', brush: 'pink' },
     bigEscaped: false,
-    worldByNight: {},
     seenUnlocks: null, // hero items already announced
   };
 }
 
+function blank() {
+  return {
+    settings: { ...DEFAULT_SETTINGS },
+    worldByNight: {},
+    profiles: [blankKid('Oliver', 'blue'), blankKid('Player 2', 'red')],
+  };
+}
+
 let data = load();
+let active = 0;
 
 function load() {
   try {
@@ -39,6 +54,12 @@ function load() {
       d.settings = { ...DEFAULT_SETTINGS, ...d.settings };
       // Older saves: floss defaults changed to more, quicker gaps.
       if (d.settings.flossGaps < 6) { d.settings.flossGaps = DEFAULT_SETTINGS.flossGaps; d.settings.flossSeconds = DEFAULT_SETTINGS.flossSeconds; }
+      // Older saves kept one kid's progress at the top level: it becomes Oliver's profile.
+      if (!JSON.parse(raw).profiles) {
+        const kid = blankKid('Oliver', 'blue');
+        for (const f of KID_FIELDS) if (d[f] !== undefined) { kid[f] = d[f]; delete d[f]; }
+        d.profiles = [kid, blankKid('Player 2', 'red')];
+      }
       return d;
     }
   } catch (e) { /* private mode or corrupted: start fresh */ }
@@ -58,19 +79,32 @@ export function nightKey(date = new Date()) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
+const kid = () => data.profiles[active];
+
 export const store = {
   get settings() { return data.settings; },
   setSetting(k, v) { data.settings[k] = v; save(); },
-  get collection() { return data.collection; },
-  get nights() { return data.nights; },
-  get swish() { return data.swish; },
-  get mornings() { return data.mornings; },
-  get hero() { return data.hero; },
-  setHero(part, value) { data.hero = { ...data.hero, [part]: value }; save(); },
-  get seenUnlocks() { return data.seenUnlocks; },
-  set seenUnlocks(v) { data.seenUnlocks = v; save(); },
-  get bigEscaped() { return data.bigEscaped; },
-  set bigEscaped(v) { data.bigEscaped = v; save(); },
+
+  // ---- profiles
+  get active() { return active; },
+  use(i) { active = i; },
+  // Profiles that can play: just Oliver, or both when the second player is on.
+  get players() { return data.settings.secondPlayer ? [0, 1] : [0]; },
+  profile(i) { return data.profiles[i]; },
+  setName(i, name) { data.profiles[i].name = name.trim() || data.profiles[i].name; save(); },
+
+  // ---- the active kid
+  get name() { return kid().name; },
+  get collection() { return kid().collection; },
+  get nights() { return kid().nights; },
+  get swish() { return kid().swish; },
+  get mornings() { return kid().mornings; },
+  get hero() { return kid().hero; },
+  setHero(part, value) { kid().hero = { ...kid().hero, [part]: value }; save(); },
+  get seenUnlocks() { return kid().seenUnlocks; },
+  set seenUnlocks(v) { kid().seenUnlocks = v; save(); },
+  get bigEscaped() { return kid().bigEscaped; },
+  set bigEscaped(v) { kid().bigEscaped = v; save(); },
 
   worldForTonight(worldIds) {
     const k = nightKey();
@@ -81,16 +115,18 @@ export const store = {
     return data.worldByNight[k];
   },
 
-  addEmoji(id) { data.collection[id] = nightKey(); save(); },
-  completeNight(info) { data.nights[nightKey()] = { ...(data.nights[nightKey()] || {}), ...info, done: true }; save(); },
-  addSwishStar() { data.swish[nightKey()] = true; save(); },
+  addEmoji(id) { kid().collection[id] = nightKey(); save(); },
+  completeNight(info) { kid().nights[nightKey()] = { ...(kid().nights[nightKey()] || {}), ...info, done: true }; save(); },
+  addSwishStar() { kid().swish[nightKey()] = true; save(); },
   // Mornings count by calendar date (no 4am shift).
-  addMorningSun() { data.mornings[nightKey(new Date(Date.now() + 4 * 3600 * 1000))] = true; save(); },
+  addMorningSun() { kid().mornings[nightKey(new Date(Date.now() + 4 * 3600 * 1000))] = true; save(); },
 
+  // Clears every kid's collection and calendar; keeps names, heroes and settings.
   resetProgress() {
-    const { settings, hero, seenUnlocks } = data;
-    data = blank();
-    Object.assign(data, { settings, hero, seenUnlocks });
+    data.profiles = data.profiles.map((p, i) => {
+      const fresh = blankKid(p.name, i ? 'red' : 'blue');
+      return { ...fresh, hero: p.hero, seenUnlocks: p.seenUnlocks };
+    });
     save();
   },
 };
