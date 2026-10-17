@@ -1,26 +1,28 @@
-// The nightly routines. The steps, their order and their sounds are the same
-// every night; only the world (scenery and emoji set) changes.
+// The routines. The steps, their order and their sounds are the same every
+// time; only the world (scenery and emoji set) changes. No narration: just
+// short on-screen text.
 
 import { $, h, img, toast } from './dom.js';
-import { ART, ZONES, GAPS, SMALL_GOBLINS, catalog, preloadImages } from './assets.js';
+import { ART, ZONES, GAPS, SMALL_GOBLINS, catalog, allEmoji, preloadImages } from './assets.js';
 import { store } from './store.js';
 import { audio } from './audio.js';
 import { keepAwake } from './wake.js';
 import { Guide } from './guide.js';
-import { photoCard } from './photo.js';
+import { heroEl, setPose } from './hero.js';
+import { photoEditor } from './photo.js';
 import { showCollection, showCalendar } from './books.js';
 
-const BRUSH_STEPS = [['brush', 'Brush'], ['pick', 'Get your floss pick'], ['floss', 'Floss'], ['gift', 'Prize'], ['moon', 'Goodnight']];
+const NIGHT_STEPS = [['brush', 'Brush'], ['pick', 'Get your floss pick'], ['floss', 'Floss'], ['gift', 'Prize'], ['moon', 'Goodnight']];
+const MORNING_STEPS = [['brush', 'Brush'], ['sun_sticker', 'Sun sticker']];
 const SWISH_STEPS = [['cup', 'Take a sip'], ['swish', 'Swish'], ['sink', 'Spit'], ['star_small', 'Gold star']];
 
-// Where goblins gather around the mirror for each zone (degrees, 0 = right, 90 = down).
+// Where goblins gather around the hero for each zone (degrees, 0 = right, 90 = down).
 const ZONE_ANGLES = {
-  top_left: [196, 222, 248], top_front: [242, 270, 298], top_right: [292, 318, 344],
-  bottom_right: [16, 42, 68], bottom_front: [66, 90, 114], bottom_left: [112, 138, 164],
+  top_left: [200, 226, 252], top_front: [244, 270, 296], top_right: [288, 314, 340],
+  bottom_right: [10, 34, 58], bottom_front: [64, 90, 116], bottom_left: [122, 146, 170],
 };
-const GAP_ANGLES = {
-  gap_top_mid: 256, gap_bottom_mid: 104, gap_top_left: 204, gap_top_right: 336, gap_bottom_left: 156, gap_bottom_right: 24,
-};
+const SHOT_MS = 320;      // hero fires a bolt this often while he is brushing
+const GOLD_WEIGHT = 0.35; // sparkly emoji are rarer than regular ones
 
 class Abort extends Error {}
 
@@ -99,24 +101,63 @@ export class Game {
     setTimeout(() => { bg.src = src; bg.onload = () => bg.classList.remove('fade'); }, 500);
   }
 
-  show(el) { this.screen.replaceChildren(el); return el; }
+  show(el) {
+    document.querySelectorAll('.banner').forEach(b => b.remove());
+    this.screen.replaceChildren(el);
+    return el;
+  }
 
-  mirrorGeometry() {
-    const app = $('#app').getBoundingClientRect();
-    const r = $('#mirror').getBoundingClientRect();
-    // The mirror animates its scale in; use its final size.
-    const size = Math.max(r.width, r.height) / (document.body.classList.contains('cam') ? 1 : 0.6);
-    return { cx: r.left + r.width / 2 - app.left, cy: r.top + r.height / 2 - app.top, R: size / 2, W: app.width, H: app.height };
+  // A short line of big text instead of narration.
+  banner(text, ms = 1600) {
+    const b = h('div', { class: 'banner' }, text);
+    $('#app').append(b);
+    setTimeout(() => b.remove(), ms);
+  }
+
+  appRect() { return $('#app').getBoundingClientRect(); }
+
+  // Center of an element in stage coordinates.
+  centerOf(el, fx = 0.5, fy = 0.5) {
+    const a = this.appRect(), r = el.getBoundingClientRect();
+    return { x: r.left - a.left + r.width * fx, y: r.top - a.top + r.height * fy, w: r.width, h: r.height };
   }
 
   placeAround(el, deg, radiusFactor = 1.0, halfSize = 50) {
-    const g = this.mirrorGeometry();
-    const a = deg * Math.PI / 180;
-    const x = Math.max(halfSize, Math.min(g.W - halfSize, g.cx + Math.cos(a) * g.R * radiusFactor));
-    const y = Math.max(halfSize + 60, Math.min(g.H - halfSize, g.cy + Math.sin(a) * g.R * radiusFactor));
+    const a = this.appRect();
+    const c = this.centerOf(this.hero, 0.5, 0.5);
+    const R = Math.max(c.w, c.h) * 0.62 * radiusFactor;
+    const rad = deg * Math.PI / 180;
+    const x = Math.max(halfSize, Math.min(a.width - halfSize, c.x + Math.cos(rad) * R));
+    const y = Math.max(halfSize + 70, Math.min(a.height - halfSize, c.y + Math.sin(rad) * R));
     el.style.left = `${x}px`;
     el.style.top = `${y}px`;
     return { x, y };
+  }
+
+  // The hero swings its brush and a toothpaste bolt flies at the target.
+  shoot(target, onHit) {
+    if (!target?.isConnected) return;
+    const from = this.centerOf(this.hero, 0.86, 0.3);
+    const to = this.centerOf(target, 0.5, 0.5);
+    const bolt = img(ART.icon('bolt'), 'bolt');
+    Object.assign(bolt.style, { left: `${from.x}px`, top: `${from.y}px` });
+    this.stage.append(bolt);
+    this.hero.classList.remove('attack');
+    void this.hero.offsetWidth;
+    this.hero.classList.add('attack');
+    audio.fx('zap', { rate: 0.9 + Math.random() * 0.25 });
+    const anim = bolt.animate([
+      { transform: 'translate(-50%, -50%) scale(.5)' },
+      { transform: `translate(calc(-50% + ${to.x - from.x}px), calc(-50% + ${to.y - from.y}px)) scale(1.1)` },
+    ], { duration: 260, easing: 'ease-in' });
+    anim.onfinish = () => {
+      bolt.remove();
+      if (!target.isConnected) return;
+      target.classList.remove('hit');
+      void target.offsetWidth;
+      target.classList.add('hit');
+      onHit?.();
+    };
   }
 
   // The core timed step used by both brushing zones and floss gaps. Time only
@@ -160,30 +201,23 @@ export class Game {
       p.querySelector('.pause-text').textContent = st.starting ? 'Getting the mirror ready…' : 'Come back to the mirror!';
       p.hidden = false;
       audio.duck(0.3);
-      if (!st.starting) {
-        audio.fx('pause');
-        clearTimeout(this.comeBackTimer);
-        this.comeBackTimer = setTimeout(() => { if (this.paused && !this.aborted) audio.say('come_back'); }, 1200);
-      }
+      if (!st.starting) audio.fx('pause');
       this.pausedStarting = !!st.starting;
     } else if (should && this.paused && this.pausedStarting && !st.starting) {
-      // Camera is ready but he isn't in frame yet.
       this.pausedStarting = false;
       $('#pause .pause-text').textContent = 'Come back to the mirror!';
     } else if (!should && this.paused) {
       this.paused = false;
       this.applyFreeze();
-      clearTimeout(this.comeBackTimer);
       $('#pause').hidden = true;
       audio.duck(1);
-      if (!this.pausedStarting) { audio.fx('resume'); audio.say('there_you_are'); }
+      if (!this.pausedStarting) audio.fx('resume');
       this.pausedStarting = false;
     }
   }
 
   clearPause() {
     this.paused = false;
-    clearTimeout(this.comeBackTimer);
     $('#pause').hidden = true;
     audio.duck(1);
     this.applyFreeze();
@@ -196,9 +230,11 @@ export class Game {
     this.reset();
     this.running = true;
     keepAwake(true);
+    $('#pause .pause-art').replaceChildren(heroEl('wait', store.hero, 'pause-hero'), img(ART.icon('face_outline'), 'pause-face'));
     try {
       if (kind === 'swish') await this.swishRoutine();
-      else await this.brushRoutine();
+      else if (kind === 'morning') await this.morningRoutine();
+      else await this.nightRoutine();
     } catch (e) {
       if (!(e instanceof Abort)) { console.error(e); toast('Something went wrong — back to the start.'); }
     } finally {
@@ -210,79 +246,115 @@ export class Game {
     this.running = false;
     this.tracker.stop();
     keepAwake(false);
-    audio.stopVoice();
     audio.stopMusic(1.2);
     this.clearPause();
     document.body.classList.remove('cam');
+    document.querySelectorAll('.banner').forEach(b => b.remove());
     this.strip.replaceChildren();
     this.stage.replaceChildren();
     this.onExit?.();
   }
 
-  // ------------------------------------------------------------ brush & floss
-
-  async brushRoutine() {
-    const s = store.settings;
-    const worlds = catalog.worlds.map(w => w.id);
-    const world = store.worldForTonight(worlds);
-    this.world = world;
-    preloadImages([ART.world(world), ART.world(world, true), ...SMALL_GOBLINS.map(ART.goblin), ART.goblin('big'),
-      ART.goblin('big_hurt'), ART.goblin('big_dizzy'), ART.goblin('sneaky'), ART.buddy('cheer'), ART.buddy('sleep')]);
-
-    if (s.camera) this.tracker.start();
+  startCamera() {
+    if (store.settings.camera) this.tracker.start();
     else this.tracker.stop();
     document.body.classList.add('cam');
-    const result = await this.brushing(world);
+  }
+
+  preload(world) {
+    preloadImages([ART.world(world), ART.world(world, true), ...SMALL_GOBLINS.map(ART.goblin), ART.goblin('big'),
+      ART.goblin('big_hurt'), ART.goblin('big_dizzy'), ART.goblin('sneaky'), ART.icon('bolt')]);
+  }
+
+  // ------------------------------------------------------------ night: brush & floss
+
+  async nightRoutine() {
+    const world = store.worldForTonight(catalog.worlds.map(w => w.id));
+    this.preload(world);
+    this.startCamera();
+    const result = await this.brushing(world, NIGHT_STEPS);
     await this.flossPause();
     await this.flossing();
     await this.reward(result);
     await this.goodnight(world);
   }
 
-  async brushing(world) {
-    const s = store.settings;
-    this.setStrip(BRUSH_STEPS, 0);
-    this.setBg(ART.world(world));
+  // ------------------------------------------------------------ morning: brush only
+
+  async morningRoutine() {
+    const worlds = catalog.worlds.map(w => w.id);
+    const world = worlds[Math.floor(Math.random() * worlds.length)];
+    this.preload(world);
+    this.startCamera();
+    await this.brushing(world, MORNING_STEPS);
+    this.tracker.stop();
+    document.body.classList.remove('cam');
+    this.setStrip(MORNING_STEPS, 1);
+    store.addMorningSun();
+    audio.fx('fanfare');
+    audio.fx('sparkle');
+    const done = h('button', { class: 'btn' }, img(ART.icon('home')), 'All done');
     this.stage.replaceChildren();
+    this.show(h('div', { class: 'center-col reward' },
+      h('p', { class: 'big-text' }, 'Good morning!'),
+      h('div', { class: 'reveal' }, img(ART.icon('sun_sticker'))),
+      heroEl('cheer', store.hero, 'hero-small'),
+      h('div', { class: 'row' },
+        h('button', { class: 'btn small blue', onclick: () => { audio.fx('tap'); showCalendar(); } }, img(ART.icon('calendar')), 'Calendar')),
+      done));
+    await this.waitTap(done);
+    $('#overlay').hidden = true;
+  }
+
+  // ------------------------------------------------------------ brushing
+
+  async brushing(world, steps) {
+    const s = store.settings;
+    this.setStrip(steps, 0);
+    this.setBg(ART.world(world));
     audio.playMusic('music_adventure');
     const zoneDur = (s.brushMinutes * 60) / ZONES.length;
     const guide = new Guide('brush', ZONES.length);
-    const buddy = img(ART.buddy('ready'), 'buddy');
-    this.show(h('div', {}, guide.el, buddy));
+    this.hero = heroEl('ready', store.hero, 'center');
+    this.stage.replaceChildren(this.hero);
+    this.show(h('div', {}, guide.el));
     guide.show(ZONES[0], 0);
-
-    await audio.say('lets_brush');
-    this.check();
-    await audio.say('world_' + world);
-    this.check();
+    this.banner(catalog.worlds.find(w => w.id === world).name + '!');
+    await this.sleep(1200);
 
     if (this.tracker.status().noCamera && s.camera) toast('Camera not available — timers run on their own.');
 
-    let clock = 0, moving = 0, skipping = false, photo = null;
+    let clock = 0, moving = 0, skipping = false, photo = null, big = null;
     for (let i = 0; i < ZONES.length; i++) {
       const z = ZONES[i];
       const final = i === ZONES.length - 1;
       guide.show(z, i);
-      let goblins = [], big = null;
+      let goblins = [];
       if (!final) {
         goblins = this.spawnGoblins(z, i);
-        if (!skipping) audio.say('zone_' + z);
       } else {
-        audio.playMusic('music_boss', 1);
+        audio.playMusic('music_boss', 0.8);
         big = this.spawnBig();
-        if (!skipping) {
-          audio.say('zone_' + z).then(() => !this.aborted && audio.say(store.bigEscaped ? 'big_back' : 'big_goblin'));
-        }
+        this.banner(store.bigEscaped ? 'He’s back!' : 'Big Goblin!');
       }
-      let lastHit = 0;
+      let lastShot = 0, lastHit = 0;
       const res = skipping ? { clock: zoneDur, moving: zoneDur, skipped: true } : await this.track(zoneDur, (p, st) => {
         guide.setProgress(p);
-        guide.setActive(st.active, st.now);
+        guide.setActive(st.active);
+        this.hero.classList.toggle('idle', !st.active);
+        const firing = st.active && st.now - lastShot > SHOT_MS / this.speed;
         if (!final) {
           goblins.forEach((g, k) => { if (!g.popped && p >= ((k + 1) / goblins.length) * 0.9) this.popGoblin(g); });
+          const target = goblins.find(g => !g.popped);
+          if (firing && target) { lastShot = st.now; this.shoot(target.el); }
         } else {
           big.hp.style.transform = `scaleX(${1 - p})`;
-          if (p - lastHit >= 0.12 && p < 0.98) { lastHit = p; this.hitBig(big); }
+          if (firing) {
+            lastShot = st.now;
+            this.shoot(big.body, () => {
+              if (p - lastHit >= 0.1) { lastHit = p; big.el.classList.add('hurt'); setTimeout(() => big.el.classList.remove('hurt'), 350); }
+            });
+          }
           if (!photo && p > 0.35 && st.faceNow) {
             photo = this.tracker.snapshot();
             if (photo) { const f = $('#flash'); f.classList.remove('go'); void f.offsetWidth; f.classList.add('go'); }
@@ -294,28 +366,26 @@ export class Game {
       moving += res.moving;
       goblins.forEach(g => { if (!g.popped) this.popGoblin(g); });
       if (!final) audio.fx('chime');
-      else this.lastBig = big;
     }
     guide.finish();
     guide.setActive(true);
+    this.hero.classList.remove('idle');
 
     const score = skipping ? 1 : clock > 0 ? moving / clock : 1;
     const passed = skipping || score >= s.passMark;
-    const big = this.lastBig;
     big.hp.parentElement.remove();
     if (passed) {
       audio.stopMusic(0.8);
       big.body.querySelector('img').src = ART.goblin('big_dizzy');
       big.el.classList.add('beaten');
       audio.fx('defeat');
-      buddy.src = ART.buddy('cheer');
-      buddy.classList.add('cheer');
+      setPose(this.hero, 'cheer');
+      this.hero.classList.add('cheer');
       await this.sleep(1500);
-      const b = h('div', { class: 'burst', style: { left: '50%', top: big.el.style.top || '60%', width: '60vw', position: 'absolute' } });
-      this.stage.append(b);
+      this.stage.append(h('div', { class: 'burst', style: { left: big.el.style.left || '50%', top: big.el.style.top, width: '60vw', position: 'absolute' } }));
       audio.fx('pop');
-      await audio.say('big_beaten');
-      this.check();
+      this.banner('You beat him!', 1800);
+      await this.sleep(1800);
       store.bigEscaped = false;
     } else {
       audio.stopMusic(2);
@@ -323,9 +393,7 @@ export class Game {
       big.el.append(h('div', { class: 'bubble' }, 'I\'ll be back tomorrow!'));
       audio.fx('whoosh');
       audio.fx('giggle');
-      await audio.say('big_escaped');
-      this.check();
-      await this.sleep(2500);
+      await this.sleep(5000);
       store.bigEscaped = true;
     }
     this.stage.replaceChildren();
@@ -333,10 +401,9 @@ export class Game {
   }
 
   spawnGoblins(zone, zoneIndex) {
-    const angles = ZONE_ANGLES[zone];
-    return angles.map((deg, k) => {
+    return ZONE_ANGLES[zone].map((deg, k) => {
       const type = SMALL_GOBLINS[(zoneIndex + k) % SMALL_GOBLINS.length];
-      const el = h('div', { class: 'sprite goblin enter', style: { animationDelay: `${k * 0.25}s` } }, img(ART.goblin(type)));
+      const el = h('div', { class: 'sprite goblin enter', style: { animationDelay: `${k * 0.2}s` } }, img(ART.goblin(type)));
       el.querySelector('img').style.animationDelay = `${-k * 0.4}s`;
       this.stage.append(el);
       this.placeAround(el, deg, 1.0, el.offsetWidth / 2 || 50);
@@ -355,89 +422,95 @@ export class Game {
     const hp = h('i');
     const body = h('div', { class: 'body' }, img(ART.goblin('big')), img(ART.goblin('big_hurt')));
     const el = h('div', { class: 'big enter' }, h('div', { class: 'bar hp' }, hp), body);
-    const g = this.mirrorGeometry();
-    el.style.top = `${g.cy + g.R * 0.55}px`;
-    if (store.bigEscaped) {
-      const bubble = h('div', { class: 'bubble' }, 'I\'m back!');
-      el.append(bubble);
-      setTimeout(() => bubble.remove(), 3500);
-    }
+    const c = this.centerOf(this.hero);
+    el.style.top = `${Math.max(90, c.y - c.h * 0.5 - this.appRect().height * 0.3)}px`;
     this.stage.append(el);
     audio.fx('giggle', { rate: 0.7 });
     return { el, body, hp };
   }
 
-  hitBig(big) {
-    audio.fx('hit', { gain: 0.8 });
-    big.el.classList.remove('flinch');
-    void big.el.offsetWidth;
-    big.el.classList.add('flinch', 'hurt');
-    setTimeout(() => big.el.classList.remove('hurt'), 450);
-  }
+  // ------------------------------------------------------------ flossing
 
   async flossPause() {
-    this.setStrip(BRUSH_STEPS, 1);
+    this.setStrip(NIGHT_STEPS, 1);
     audio.playMusic('music_calm', 2);
     audio.duck(0.6);
-    const btn = h('button', { class: 'btn blue' }, img(ART.icon('pick')), 'I\'m ready!');
+    const btn = h('button', { class: 'btn blue' }, img(ART.icon('pick')), 'Ready!');
     this.show(h('div', { class: 'center-col calm' },
       img(ART.icon('pick'), 'hero-img'),
       h('p', { class: 'big-text' }, 'Get your floss pick'),
       btn));
-    audio.say('get_floss');
     await this.waitTap(btn);
     audio.duck(1);
   }
 
   async flossing() {
     const s = store.settings;
-    this.setStrip(BRUSH_STEPS, 2);
+    this.setStrip(NIGHT_STEPS, 2);
     const gaps = GAPS.slice(0, s.flossGaps);
     const guide = new Guide('floss', gaps.length);
-    this.show(h('div', {}, guide.el, img(ART.buddy('ready'), 'buddy')));
+    guide.el.classList.add('floss');
+    this.hero = heroEl('ready', store.hero, 'center');
+    this.stage.replaceChildren(this.hero);
+    this.show(h('div', {}, guide.el));
     guide.show(gaps[0], 0);
-    await audio.say('lets_floss');
-    this.check();
+    this.banner('Floss time!', 1200);
+    await this.sleep(900);
     let skipping = false;
     for (let i = 0; i < gaps.length; i++) {
       const gap = gaps[i];
       guide.show(gap, i);
-      const deg = GAP_ANGLES[gap];
+      // A sneaky goblin peeks out somewhere around the hero, never the same side twice.
+      const deg = (i * 137 + 200) % 360;
       const el = h('div', { class: 'sprite sneaky goblin enter' }, img(ART.goblin('sneaky')));
       this.stage.append(el);
-      const { x } = this.placeAround(el, deg, 0.92, 45);
-      if (!skipping) audio.say(gap);
+      const { x } = this.placeAround(el, deg, 0.95, 45);
       const res = skipping ? { skipped: true } : await this.track(s.flossSeconds, (p, st) => {
         guide.setProgress(p);
-        guide.setActive(st.active, st.now);
+        guide.setActive(st.active);
+        this.hero.classList.toggle('idle', !st.active);
       });
       if (res.skipped) skipping = true;
-      el.classList.remove('enter');
-      el.classList.add('run', x > this.mirrorGeometry().cx ? 'right' : 'left');
-      audio.fx('whoosh', { gain: 0.6 });
-      audio.fx('giggle');
-      audio.fx('chime');
-      setTimeout(() => el.remove(), 1500);
-      if (!skipping) await this.sleep(700);
+      const runAway = () => {
+        el.classList.remove('enter');
+        el.classList.add('run', x > this.centerOf(this.hero).x ? 'right' : 'left');
+        audio.fx('whoosh', { gain: 0.5 });
+        audio.fx('chime', { gain: 0.6 });
+        setTimeout(() => el.remove(), 1500);
+      };
+      if (skipping) runAway();
+      else { this.shoot(el, runAway); await this.sleep(300); }
     }
     guide.finish();
-    await audio.say('floss_done');
-    this.check();
+    setPose(this.hero, 'cheer');
+    this.banner('Great flossing!', 1400);
+    await this.sleep(1400);
     this.stage.replaceChildren();
   }
 
+  // ------------------------------------------------------------ reward
+
+  pickEmoji(world) {
+    const owned = store.collection;
+    const pool = [];
+    const consider = w => allEmoji().filter(e => e.world === w && !owned[e.id])
+      // A sparkly version can only turn up once its regular version is found.
+      .forEach(e => { if (!e.gold) pool.push([e, 1]); else if (owned[e.base]) pool.push([e, GOLD_WEIGHT]); });
+    consider(world);
+    if (!pool.length) catalog.worlds.forEach(w => consider(w.id));
+    if (!pool.length) return null;
+    let r = Math.random() * pool.reduce((t, [, wt]) => t + wt, 0);
+    for (const [e, wt] of pool) { if ((r -= wt) <= 0) return e; }
+    return pool[pool.length - 1][0];
+  }
+
   async reward({ passed, photo, world }) {
-    this.setStrip(BRUSH_STEPS, 3);
+    this.setStrip(NIGHT_STEPS, 3);
     audio.stopMusic(1);
+    this.tracker.stop();
     document.body.classList.remove('cam');
-    let emoji = null;
-    if (passed) {
-      const missing = (w) => catalog.worlds.find(x => x.id === w).emoji.filter(e => !store.collection[e.id]);
-      let pool = missing(world);
-      if (!pool.length) pool = catalog.worlds.flatMap(w => missing(w.id));
-      emoji = pool.length ? pool[Math.floor(Math.random() * pool.length)] : null;
-      if (emoji) store.addEmoji(emoji.id);
-    }
+    const emoji = passed ? this.pickEmoji(world) : null;
+    if (emoji) store.addEmoji(emoji.id);
     store.completeNight({ passed, emoji: emoji?.id || null, world });
 
     const goodnightBtn = h('button', { class: 'btn' }, img(ART.icon('moon')), 'Goodnight');
@@ -447,32 +520,29 @@ export class Game {
       audio.fx('fanfare');
       audio.fx('sparkle');
       if (emoji) {
-        col.append(h('p', { class: 'big-text' }, 'New emoji!'),
-          h('div', { class: 'reveal' }, img(ART.emoji(emoji.id))),
+        col.append(h('p', { class: 'big-text' }, emoji.gold ? 'Sparkly emoji!' : 'New emoji!'),
+          h('div', { class: `reveal ${emoji.gold ? 'gold' : ''}` }, img(ART.emoji(emoji.id))),
           h('div', { class: 'emoji-name' }, emoji.name));
-        await audio.say('new_emoji');
       } else {
         col.append(h('p', { class: 'big-text' }, 'You found them all!'), h('div', { class: 'reveal' }, img(ART.icon('star'))));
-        await audio.say('all_found');
       }
-      this.check();
-      if (photo && emoji) {
-        const card = photoCard(photo, emoji.id);
+      await this.sleep(1200);
+      if (photo) {
+        const owned = Object.entries(store.collection).sort((a, b) => (a[1] < b[1] ? 1 : -1)).map(([id]) => id);
+        const tray = emoji ? [emoji.id, ...owned.filter(id => id !== emoji.id)] : owned;
+        const editor = photoEditor(photo, emoji ? [emoji.id] : [], tray);
         const saveBtn = h('button', { class: 'btn pink small' }, img(ART.icon('camera')), 'Save photo');
         saveBtn.addEventListener('click', async () => {
           audio.fx('tap');
-          const ok = await card.save();
-          if (ok) { saveBtn.textContent = 'Saved ✓'; saveBtn.disabled = true; }
+          const ok = await editor.save();
+          if (ok) { saveBtn.textContent = 'Saved ✓'; }
         });
-        col.append(card.el, saveBtn);
-        audio.say('photo');
+        col.append(editor.el, saveBtn);
       }
     } else {
       col.append(h('p', { class: 'big-text' }, 'No emoji tonight'),
         h('div', { class: 'reveal' }, img(ART.goblin('big'))),
         h('div', { class: 'emoji-name' }, 'Beat the big goblin tomorrow!'));
-      await audio.say('no_emoji');
-      this.check();
     }
     col.append(h('div', { class: 'row' },
       h('button', { class: 'btn small blue', onclick: () => { audio.fx('tap'); showCollection(emoji?.id); } }, img(ART.icon('book')), 'Collection'),
@@ -482,16 +552,16 @@ export class Game {
     $('#overlay').hidden = true;
   }
 
+  // ------------------------------------------------------------ goodnight
+
   async goodnight(world) {
-    this.setStrip(BRUSH_STEPS, 4);
-    this.tracker.stop();
+    this.setStrip(NIGHT_STEPS, 4);
     keepAwake(false);
     this.setBg(ART.world(world, true));
     audio.playMusic('music_lullaby', 3);
-    const g = this.mirrorGeometry();
-    const W = g.W, H = g.H;
+    const a = this.appRect();
+    const W = a.width, H = a.height;
     const sleepers = [
-      [ART.buddy('sleep'), 0.5, 0.86, Math.min(W * 0.36, 200)],
       [ART.goblin('big_sleep'), 0.2, 0.7, Math.min(W * 0.34, 190)],
       [ART.goblin('a_sleep'), 0.82, 0.68, Math.min(W * 0.22, 120)],
       [ART.goblin('b_sleep'), 0.14, 0.94, Math.min(W * 0.2, 110)],
@@ -499,21 +569,26 @@ export class Game {
       [ART.goblin('sneaky_sleep'), 0.66, 0.78, Math.min(W * 0.15, 80)],
     ];
     const cast = h('div', { class: 'night-cast' });
+    const zzz = (x, y, w, i) => {
+      const z = img(ART.icon('zzz'), 'zzz');
+      Object.assign(z.style, { left: `${x * W + w * 0.2}px`, top: `${y * H - w * 1.1}px`, animationDelay: `${i * 0.6}s` });
+      return z;
+    };
     sleepers.forEach(([src, x, y, w], i) => {
       const s = img(src, 'sleeper');
       Object.assign(s.style, { left: `${x * W}px`, top: `${y * H}px`, width: `${w}px`, animationDelay: `${-i * 0.7}s` });
-      const z = img(ART.icon('zzz'), 'zzz');
-      Object.assign(z.style, { left: `${x * W + w * 0.2}px`, top: `${y * H - w * 1.1}px`, animationDelay: `${i * 0.6}s` });
-      cast.append(s, z);
+      cast.append(s, zzz(x, y, w, i));
     });
+    const hw = Math.min(W * 0.38, 210);
+    const hero = heroEl('sleep', store.hero, 'sleeper');
+    Object.assign(hero.style, { left: `${0.5 * W}px`, top: `${0.88 * H}px`, width: `${hw}px` });
+    cast.append(hero, zzz(0.5, 0.88, hw, 5));
     this.stage.replaceChildren(cast);
     const done = h('button', { class: 'btn small', style: { opacity: 0, transition: 'opacity 1s' } }, 'Done');
     this.show(h('div', {},
       h('div', { class: 'goodnight-text' }, h('p', { class: 'big-text' }, 'Goodnight!'),
         h('div', { style: { marginTop: '24px' } }, done))));
-    await this.sleep(1500);
-    await audio.say('goodnight');
-    this.check();
+    await this.sleep(3000);
     done.style.opacity = 1;
     // Let the lullaby play softly for a while, then fade out.
     const fade = setTimeout(() => audio.stopMusic(8), 60000);
@@ -530,15 +605,14 @@ export class Game {
     const ready = h('button', { class: 'btn blue' }, img(ART.icon('cup')), 'Ready!');
     this.show(h('div', { class: 'center-col calm' },
       img(ART.icon('cup'), 'hero-img'), h('p', { class: 'big-text' }, 'Take a sip'), ready));
-    audio.say('take_sip');
     await this.waitTap(ready);
 
     this.setStrip(SWISH_STEPS, 1);
     const secs = store.settings.swishSeconds;
     const count = h('div', { class: 'count' }, secs);
-    this.show(h('div', { class: 'center-col' }, img(ART.buddy('swish'), 'swish-buddy'), count));
+    this.show(h('div', { class: 'center-col' }, heroEl('swish', store.hero, 'swish-buddy'), count));
     const wave = h('div', { class: 'wave' }, img(ART.icon('wave')));
-    const H = this.mirrorGeometry().H;
+    const H = this.appRect().height;
     const goblins = [0.18, 0.5, 0.82].map((x, i) => {
       const el = h('div', { class: 'sprite goblin' }, img(ART.goblin(SMALL_GOBLINS[i])));
       Object.assign(el.style, { left: `${x * 100}%`, top: `${H * 0.86}px` });
@@ -546,11 +620,10 @@ export class Game {
       return { el, x, gone: false };
     });
     this.stage.append(wave);
-    audio.say('swish');
     audio.fx('wave');
     await new Promise(resolve => {
       const start = performance.now();
-      let lastSay = start, lastWave = start, pausedFor = 0, lastNow = start;
+      let lastWave = start, pausedFor = 0, lastNow = start;
       const frame = now => {
         if (this.aborted) return resolve();
         if (this.skip) { this.skip = false; return resolve(); }
@@ -563,7 +636,6 @@ export class Game {
         goblins.forEach(g => {
           if (!g.gone && p >= g.x * 0.95) { g.gone = true; g.el.classList.add('washed'); audio.fx('pop', { gain: 0.6 }); }
         });
-        if (now - lastSay > 7000 && secs - t > 4) { lastSay = now; audio.say('swish'); }
         if (now - lastWave > 3000) { lastWave = now; audio.fx('wave', { gain: 0.8 }); }
         if (p >= 1) return resolve();
         requestAnimationFrame(frame);
@@ -578,9 +650,8 @@ export class Game {
     const spitDone = h('button', { class: 'btn', style: { visibility: 'hidden' } }, 'Done!');
     this.show(h('div', { class: 'center-col' },
       h('p', { class: 'big-text spit-text' }, 'Spit!'), img(ART.icon('sink'), 'hero-img'), spitDone));
-    await audio.say('spit');
-    this.check();
-    await this.sleep(1200);
+    audio.fx('chime');
+    await this.sleep(1500);
     spitDone.style.visibility = 'visible';
     await this.waitTap(spitDone);
 
@@ -595,9 +666,7 @@ export class Game {
       h('div', { class: 'row' },
         h('button', { class: 'btn small blue', onclick: () => { audio.fx('tap'); showCalendar(); } }, img(ART.icon('calendar')), 'Calendar')),
       home));
-    const tapped = this.waitTap(home);
-    audio.say('swish_done');
-    await tapped;
+    await this.waitTap(home);
     $('#overlay').hidden = true;
   }
 }

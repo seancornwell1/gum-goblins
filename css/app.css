@@ -9,7 +9,7 @@
   --card: rgba(255, 255, 255, .92);
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
-  --mirror: min(80vw, 44vh);
+  --mirror: min(30vw, 17vh);
   --mirror-top: calc(var(--safe-top) + 84px);
   font-family: ui-rounded, "SF Pro Rounded", "Nunito", "Arial Rounded MT Bold", system-ui, sans-serif;
   color: var(--ink);
@@ -31,15 +31,15 @@ button { font: inherit; color: inherit; border: 0; background: none; cursor: poi
 
 /* ---------------------------------------------------------------- mirror */
 #mirror {
-  position: absolute; left: 50%; top: var(--mirror-top);
-  width: var(--mirror); height: var(--mirror); transform: translateX(-50%) scale(.6);
+  position: absolute; left: 12px; top: var(--mirror-top);
+  width: var(--mirror); height: var(--mirror); transform: scale(.6); transform-origin: top left;
   border-radius: 50%; overflow: hidden; opacity: 0; pointer-events: none;
-  border: 8px solid #fff; box-shadow: 0 0 0 6px var(--ink), 0 12px 30px rgba(45, 27, 61, .35);
+  border: 5px solid #fff; box-shadow: 0 0 0 4px var(--ink), 0 8px 20px rgba(45, 27, 61, .35);
   background: radial-gradient(circle at 40% 35%, #e9f6ff, #9fc7ee);
   transition: opacity .6s, transform .6s cubic-bezier(.3, 1.5, .5, 1);
   z-index: 2;
 }
-body.cam #mirror { opacity: 1; transform: translateX(-50%) scale(1); }
+body.cam #mirror { opacity: 1; transform: scale(1); }
 #cam { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
 #flash { position: absolute; inset: 0; background: #fff; opacity: 0; }
 #flash.go { animation: flash .6s ease-out; }
@@ -169,7 +169,7 @@ body.cam #mirror { opacity: 1; transform: translateX(-50%) scale(1); }
 .sneaky.run { animation: runoff 1.4s ease-in forwards; }
 .sneaky.run.right { animation-name: runoff-r; }
 
-.big { position: absolute; left: 50%; width: min(64vw, 34vh, 320px); z-index: 3; transform: translateX(-50%); }
+.big { position: absolute; left: 50%; width: min(52vw, 28vh, 280px); z-index: 3; transform: translateX(-50%); }
 .big .body { position: relative; }
 .big .body img { width: 100%; display: block; }
 .big .body img + img { position: absolute; inset: 0; opacity: 0; }
@@ -241,7 +241,7 @@ body.frozen #stage *, body.frozen #stage *::after, body.frozen #screen * { anima
 .emoji-name { font-size: 26px; font-weight: 900; background: #fff; padding: 6px 18px; border-radius: 20px; box-shadow: 0 0 0 4px var(--ink); }
 @keyframes reveal { 0% { transform: scale(0) rotate(-30deg); } 100% { transform: scale(1) rotate(0); } }
 @keyframes spin { to { transform: rotate(360deg); } }
-.photo { position: relative; width: min(84vw, 380px); border: 10px solid #fff; border-radius: 16px; box-shadow: 0 0 0 4px var(--ink), 0 10px 20px rgba(0, 0, 0, .25); overflow: hidden; touch-action: none; transform: rotate(-2deg); }
+.photo { position: relative; width: min(88vw, 400px); border: 8px solid #fff; border-radius: 16px; box-shadow: 0 0 0 4px var(--ink), 0 10px 20px rgba(0, 0, 0, .25); overflow: hidden; touch-action: none; }
 .photo > img { display: block; width: 100%; }
 .photo .sticker { position: absolute; width: 34%; transform: translate(-50%, -50%); pointer-events: auto; touch-action: none; filter: drop-shadow(0 4px 0 rgba(0, 0, 0, .25)); cursor: grab; }
 .photo .drag-hint { position: absolute; left: 0; right: 0; bottom: 8px; text-align: center; font-weight: 900; color: #fff; text-shadow: 0 2px 0 var(--ink); font-size: 16px; }
@@ -249,7 +249,7 @@ body.frozen #stage *, body.frozen #stage *::after, body.frozen #screen * { anima
 
 /* ---------------------------------------------------------------- goodnight */
 .night-cast { position: absolute; inset: 0; pointer-events: none; }
-.night-cast img.sleeper { position: absolute; transform: translate(-50%, -100%); animation: snooze 4s ease-in-out infinite; }
+.night-cast .sleeper { position: absolute; transform: translate(-50%, -100%); animation: snooze 4s ease-in-out infinite; }
 .night-cast img.zzz { position: absolute; width: 60px; animation: float-z 4s ease-in-out infinite; opacity: 0; }
 @keyframes snooze { 0%, 100% { transform: translate(-50%, -100%) scale(1); } 50% { transform: translate(-50%, -100%) scale(1.03, .98); } }
 @keyframes float-z { 0% { transform: translate(0, 0) scale(.6); opacity: 0; } 30% { opacity: .9; } 100% { transform: translate(20px, -70px) scale(1); opacity: 0; } }
@@ -304,7 +304,7 @@ body.frozen #stage *, body.frozen #stage *::after, body.frozen #screen * { anima
 
 /* ---------------------------------------------------------------- landscape */
 @media (orientation: landscape) {
-  :root { --mirror: min(46vh, 34vw); --mirror-top: calc(var(--safe-top) + 74px); }
+  :root { --mirror: min(26vh, 18vw); --mirror-top: calc(var(--safe-top) + 74px); }
   .guide { width: min(26vw, 240px); }
   .buddy { width: min(16vw, 140px); }
   .big { width: min(26vw, 36vh, 260px); }
@@ -319,3 +319,73 @@ body.frozen #stage *, body.frozen #stage *::after, body.frozen #screen * { anima
 .reveal::before { z-index: -1; }
 .center-col > * { flex-shrink: 0; }
 .reward .reveal { width: min(40vw, 22vh, 200px); }
+
+/* ---------------------------------------------------------------- hero */
+.hero { position: relative; aspect-ratio: 300 / 320; }
+.hero img { position: absolute; inset: 0; width: 100%; height: 100%; }
+.hero.center {
+  position: absolute; left: 50%; top: 54%; width: min(46vw, 27vh, 260px); z-index: 3;
+  transform: translate(-50%, -50%); animation: hero-bob 2s ease-in-out infinite;
+}
+.hero.center.attack { animation: hero-lunge .2s ease-out; }
+.hero.center.cheer { animation: hero-jump .6s ease-in-out 3; }
+@keyframes hero-bob { 0%, 100% { transform: translate(-50%, -50%); } 50% { transform: translate(-50%, calc(-50% - 8px)); } }
+@keyframes hero-lunge { 0% { transform: translate(-50%, -50%); } 40% { transform: translate(calc(-50% + 6px), calc(-50% - 10px)) rotate(4deg); } 100% { transform: translate(-50%, -50%); } }
+@keyframes hero-jump { 0%, 100% { transform: translate(-50%, -50%); } 40% { transform: translate(-50%, calc(-50% - 30px)) rotate(-4deg); } }
+.bolt { position: absolute; width: 48px; transform: translate(-50%, -50%); z-index: 4; pointer-events: none; }
+.goblin.hit::before, .big .body.hit::before {
+  content: ""; position: absolute; left: 50%; top: 50%; width: 80%; aspect-ratio: 1; z-index: 2; transform: translate(-50%, -50%) scale(.3);
+  background: url(../assets/img/icons/bolt.svg) center/contain no-repeat; animation: hitflash .3s ease-out forwards;
+}
+@keyframes hitflash { 0% { transform: translate(-50%, -50%) scale(.3); opacity: 1; } 100% { transform: translate(-50%, -50%) scale(1.4); opacity: 0; } }
+.pause-hero { width: min(34vw, 170px); animation: bob 3s ease-in-out infinite; }
+.hero-small { width: 120px; }
+.swish-buddy.hero { aspect-ratio: 300 / 320; }
+
+/* short text banners in place of narration */
+.banner {
+  position: absolute; z-index: 8; left: 50%; top: 24%; transform: translateX(-50%); pointer-events: none; white-space: nowrap;
+  font-size: clamp(34px, 11vw, 64px); font-weight: 900; color: var(--yellow); -webkit-text-stroke: 3px var(--ink); paint-order: stroke fill;
+  text-shadow: 0 6px 0 var(--ink); animation: banner 1.6s ease-out both;
+}
+@keyframes banner { 0% { transform: translateX(-50%) scale(0); opacity: 0; } 15% { transform: translateX(-50%) scale(1.15); opacity: 1; } 25%, 80% { transform: translateX(-50%) scale(1); opacity: 1; } 100% { transform: translateX(-50%) scale(1); opacity: 0; } }
+
+.guide.floss .dots { gap: 3px; flex-wrap: wrap; }
+.guide.floss .dots b { width: 8px; height: 8px; box-shadow: 0 0 0 1.5px var(--ink); }
+
+/* ---------------------------------------------------------------- home: hero + morning */
+.home-cast .bd { position: absolute; bottom: 0; left: 31%; width: 38%; padding: 0; animation: bob 2s ease-in-out infinite .3s; }
+.home-cast .bd .hero { width: 100%; }
+.edit-badge { position: absolute; right: 0; top: 10%; width: 34px; height: 34px; border-radius: 50%; background: var(--yellow); box-shadow: 0 0 0 3px var(--ink); display: grid; place-items: center; font-size: 18px; font-weight: 900; }
+.btn.sunny { background: #ffe9a8; }
+.home-buttons .btn.small { width: auto; align-self: center; font-size: 19px; padding: 10px 20px; }
+.home-buttons .btn.small img { width: 34px; height: 34px; }
+.hero-preview { width: 150px; margin: 4px auto 8px; }
+.hero-row h3 { margin: 12px 0 6px; }
+.hero-options { display: flex; gap: 8px; overflow-x: auto; padding: 4px 4px 8px; -webkit-overflow-scrolling: touch; }
+.hero-opt { flex: 0 0 auto; width: 74px; padding: 6px; border-radius: 16px; background: #fff; box-shadow: 0 0 0 3px #d9cff0; }
+.hero-opt.on { box-shadow: 0 0 0 4px var(--purple); background: #fff6c8; }
+.hero-opt .hero { width: 100%; }
+
+/* ---------------------------------------------------------------- photo sticker editor */
+.editor { display: flex; flex-direction: column; align-items: center; gap: 10px; width: 100%; }
+.photo .stickers { position: absolute; inset: 0; }
+.sticker { position: absolute; transform: translate(-50%, -50%); pointer-events: auto; touch-action: none; aspect-ratio: 1; }
+.sticker > img { width: 100%; height: 100%; filter: drop-shadow(0 4px 0 rgba(0, 0, 0, .25)); }
+.sticker.sel { outline: 3px dashed #fff; outline-offset: 2px; border-radius: 12px; }
+.sticker .del, .sticker .grow { position: absolute; display: none; width: 34px; height: 34px; border-radius: 50%; box-shadow: 0 0 0 3px var(--ink); }
+.sticker.sel .del, .sticker.sel .grow { display: grid; place-items: center; }
+.sticker .del { left: -14px; top: -14px; background: #fff; font-size: 22px; font-weight: 900; line-height: 1; }
+.sticker .grow { right: -14px; bottom: -14px; background: var(--yellow); }
+.sticker .grow::after { content: ""; width: 14px; height: 14px; border-right: 4px solid var(--ink); border-bottom: 4px solid var(--ink); }
+.tray-wrap { width: min(92vw, 440px); overflow-x: auto; -webkit-overflow-scrolling: touch; background: var(--card); border-radius: 20px; box-shadow: 0 0 0 3px var(--ink); padding: 8px; }
+.tray { display: flex; gap: 8px; width: max-content; }
+.tray-item { width: 58px; height: 58px; border-radius: 14px; background: #fff; box-shadow: 0 0 0 2px #d9cff0; padding: 4px; }
+.tray-item img { width: 100%; height: 100%; }
+
+/* ---------------------------------------------------------------- collection extras */
+.grid.sparkly { margin-top: 10px; }
+.slot.gold { background: #fff6d6; box-shadow: 0 0 0 3px #f2c84b; }
+.slot.missing.gold { background: #fffbea; box-shadow: 0 0 0 3px #f5dd8a; }
+.reveal.gold::before { filter: hue-rotate(-20deg) saturate(2); }
+.day img.m { position: absolute; width: 42%; left: -4px; bottom: -4px; }

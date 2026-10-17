@@ -35,6 +35,22 @@
     {
      "id": "street/bus",
      "name": "School Bus"
+    },
+    {
+     "id": "street/puppy",
+     "name": "Puppy"
+    },
+    {
+     "id": "street/kite",
+     "name": "Kite"
+    },
+    {
+     "id": "street/scooter",
+     "name": "Scooter"
+    },
+    {
+     "id": "street/stopsign",
+     "name": "Stop Sign"
     }
    ]
   },
@@ -73,6 +89,22 @@
     {
      "id": "forest/snail",
      "name": "Snail"
+    },
+    {
+     "id": "forest/fox",
+     "name": "Fox"
+    },
+    {
+     "id": "forest/butterfly",
+     "name": "Butterfly"
+    },
+    {
+     "id": "forest/bee",
+     "name": "Bee"
+    },
+    {
+     "id": "forest/clover",
+     "name": "Lucky Clover"
     }
    ]
   },
@@ -111,6 +143,292 @@
     {
      "id": "city/pretzel",
      "name": "Pretzel"
+    },
+    {
+     "id": "city/coffee",
+     "name": "Cocoa Mug"
+    },
+    {
+     "id": "city/helicopter",
+     "name": "Helicopter"
+    },
+    {
+     "id": "city/headphones",
+     "name": "Headphones"
+    },
+    {
+     "id": "city/camera",
+     "name": "Camera"
+    }
+   ]
+  },
+  {
+   "id": "ocean",
+   "name": "The Ocean",
+   "emoji": [
+    {
+     "id": "ocean/fish",
+     "name": "Fish"
+    },
+    {
+     "id": "ocean/octopus",
+     "name": "Octopus"
+    },
+    {
+     "id": "ocean/whale",
+     "name": "Whale"
+    },
+    {
+     "id": "ocean/crab",
+     "name": "Crab"
+    },
+    {
+     "id": "ocean/starfish",
+     "name": "Starfish"
+    },
+    {
+     "id": "ocean/jellyfish",
+     "name": "Jellyfish"
+    },
+    {
+     "id": "ocean/shell",
+     "name": "Seashell"
+    },
+    {
+     "id": "ocean/turtle",
+     "name": "Sea Turtle"
+    },
+    {
+     "id": "ocean/puffer",
+     "name": "Pufferfish"
+    },
+    {
+     "id": "ocean/seahorse",
+     "name": "Seahorse"
+    },
+    {
+     "id": "ocean/sailboat",
+     "name": "Sailboat"
+    },
+    {
+     "id": "ocean/coral",
+     "name": "Coral"
+    }
+   ]
+  },
+  {
+   "id": "space",
+   "name": "Outer Space",
+   "emoji": [
+    {
+     "id": "space/rocket",
+     "name": "Rocket"
+    },
+    {
+     "id": "space/planet",
+     "name": "Ringed Planet"
+    },
+    {
+     "id": "space/moon",
+     "name": "Moon"
+    },
+    {
+     "id": "space/shootingstar",
+     "name": "Shooting Star"
+    },
+    {
+     "id": "space/alien",
+     "name": "Alien"
+    },
+    {
+     "id": "space/ufo",
+     "name": "UFO"
+    },
+    {
+     "id": "space/helmet",
+     "name": "Space Helmet"
+    },
+    {
+     "id": "space/comet",
+     "name": "Comet"
+    },
+    {
+     "id": "space/satellite",
+     "name": "Satellite"
+    },
+    {
+     "id": "space/sun",
+     "name": "Sun"
+    },
+    {
+     "id": "space/asteroid",
+     "name": "Asteroid"
+    },
+    {
+     "id": "space/robot",
+     "name": "Robot"
+    }
+   ]
+  },
+  {
+   "id": "farm",
+   "name": "The Farm",
+   "emoji": [
+    {
+     "id": "farm/cow",
+     "name": "Cow"
+    },
+    {
+     "id": "farm/pig",
+     "name": "Piglet"
+    },
+    {
+     "id": "farm/chick",
+     "name": "Chick"
+    },
+    {
+     "id": "farm/sheep",
+     "name": "Sheep"
+    },
+    {
+     "id": "farm/tractor",
+     "name": "Tractor"
+    },
+    {
+     "id": "farm/barn",
+     "name": "Barn"
+    },
+    {
+     "id": "farm/carrot",
+     "name": "Carrot"
+    },
+    {
+     "id": "farm/corn",
+     "name": "Corn"
+    },
+    {
+     "id": "farm/egg",
+     "name": "Egg"
+    },
+    {
+     "id": "farm/apple",
+     "name": "Apple"
+    },
+    {
+     "id": "farm/duck",
+     "name": "Duckling"
+    },
+    {
+     "id": "farm/sunflower",
+     "name": "Sunflower"
+    }
+   ]
+  },
+  {
+   "id": "candy",
+   "name": "Candy Land",
+   "emoji": [
+    {
+     "id": "candy/lollipop",
+     "name": "Lollipop"
+    },
+    {
+     "id": "candy/cupcake",
+     "name": "Cupcake"
+    },
+    {
+     "id": "candy/gumdrop",
+     "name": "Gumdrop"
+    },
+    {
+     "id": "candy/candycane",
+     "name": "Candy Cane"
+    },
+    {
+     "id": "candy/icecream",
+     "name": "Ice Cream"
+    },
+    {
+     "id": "candy/wrapped",
+     "name": "Wrapped Candy"
+    },
+    {
+     "id": "candy/chocolate",
+     "name": "Chocolate Bar"
+    },
+    {
+     "id": "candy/cottoncandy",
+     "name": "Cotton Candy"
+    },
+    {
+     "id": "candy/gummybear",
+     "name": "Gummy Bear"
+    },
+    {
+     "id": "candy/cookie",
+     "name": "Cookie"
+    },
+    {
+     "id": "candy/jellybean",
+     "name": "Jelly Bean"
+    },
+    {
+     "id": "candy/cake",
+     "name": "Cake Slice"
+    }
+   ]
+  },
+  {
+   "id": "dino",
+   "name": "Dino Valley",
+   "emoji": [
+    {
+     "id": "dino/trex",
+     "name": "T. Rex"
+    },
+    {
+     "id": "dino/stego",
+     "name": "Stegosaurus"
+    },
+    {
+     "id": "dino/brachio",
+     "name": "Long Neck"
+    },
+    {
+     "id": "dino/tricera",
+     "name": "Triceratops"
+    },
+    {
+     "id": "dino/ptero",
+     "name": "Pterodactyl"
+    },
+    {
+     "id": "dino/dinoegg",
+     "name": "Dino Egg"
+    },
+    {
+     "id": "dino/volcano",
+     "name": "Volcano"
+    },
+    {
+     "id": "dino/bone",
+     "name": "Bone"
+    },
+    {
+     "id": "dino/footprint",
+     "name": "Footprint"
+    },
+    {
+     "id": "dino/palm",
+     "name": "Palm Tree"
+    },
+    {
+     "id": "dino/fossil",
+     "name": "Fossil Shell"
+    },
+    {
+     "id": "dino/fern",
+     "name": "Fern"
     }
    ]
   }

@@ -1,13 +1,14 @@
 // Boot, home screen and wiring between the parts.
 
 import { $, h, img } from './dom.js';
-import { ART, loadData, preloadImages } from './assets.js';
+import { ART, loadData, preloadImages, heroParts } from './assets.js';
 import { store, nightKey } from './store.js';
 import { audio } from './audio.js';
 import { Tracker } from './tracker.js';
 import { Game } from './game.js';
 import { setupGear } from './settings.js';
 import { showCollection, showCalendar } from './books.js';
+import { heroEl } from './hero.js';
 
 const params = new URLSearchParams(location.search);
 const tracker = new Tracker($('#cam'));
@@ -26,7 +27,7 @@ window.__game = game;
 
 function applyVolumes() {
   const s = store.settings;
-  audio.applyVolumes({ music: s.volMusic, voice: s.volVoice, fx: s.volFx });
+  audio.applyVolumes({ music: s.volMusic, fx: s.volFx });
 }
 
 function applyTracking() {
@@ -50,19 +51,52 @@ function showHome() {
   const buttons = [
     h('button', { class: 'btn', id: 'go-brush', onclick: () => start('brush') },
       img(ART.icon('brush')), 'Brush & Floss', img(ART.icon('pick'))),
+    h('button', { class: 'btn small sunny', id: 'go-morning', onclick: () => start('morning') },
+      img(ART.icon('sun_sticker')), 'Morning brush'),
   ];
   if (store.settings.swishEnabled) {
-    buttons.push(h('button', { class: 'btn blue', id: 'go-swish', onclick: () => start('swish') }, img(ART.icon('cup')), 'Swish'));
+    buttons.push(h('button', { class: 'btn small blue', id: 'go-swish', onclick: () => start('swish') }, img(ART.icon('cup')), 'Swish'));
   }
+  const tap = fn => () => { audio.unlock(); audio.fx('tap'); fn(); };
   $('#screen').replaceChildren(h('div', { class: 'home' },
     h('div', { class: 'logo' }, h('h1', {}, 'Gum', h('span', {}, 'Goblins'))),
     h('div', { class: 'home-cast' },
-      img(ART.goblin('a'), 'g1'), img(ART.buddy('ready'), 'bd'), img(ART.goblin('c'), 'g2')),
+      img(ART.goblin('a'), 'g1'),
+      h('button', { class: 'bd', id: 'my-hero', 'aria-label': 'Dress up your hero', onclick: tap(showHeroEditor) },
+        heroEl('ready'), h('span', { class: 'edit-badge' }, '✎')),
+      img(ART.goblin('c'), 'g2')),
     tonight?.done ? h('div', { class: 'tonight' }, img(ART.icon('tooth_sticker')), 'Done tonight!') : null,
     h('div', { class: 'home-buttons' }, buttons),
     h('div', { class: 'home-row' },
-      h('button', { class: 'round-btn', 'aria-label': 'Collection', onclick: () => { audio.unlock(); audio.fx('tap'); showCollection(); } }, img(ART.icon('book'))),
-      h('button', { class: 'round-btn', 'aria-label': 'Calendar', onclick: () => { audio.unlock(); audio.fx('tap'); showCalendar(); } }, img(ART.icon('calendar'))))));
+      h('button', { class: 'round-btn', 'aria-label': 'Collection', onclick: tap(() => showCollection()) }, img(ART.icon('book'))),
+      h('button', { class: 'round-btn', 'aria-label': 'Calendar', onclick: tap(showCalendar) }, img(ART.icon('calendar'))))));
+}
+
+// Dress-up: a few capes, hats and brush colours to pick from.
+function showHeroEditor() {
+  const ov = $('#overlay');
+  const preview = h('div', { class: 'hero-preview' });
+  const close = () => { ov.hidden = true; ov.replaceChildren(); showHome(); };
+  const rows = h('div');
+  const render = () => {
+    preview.replaceChildren(heroEl('cheer'));
+    const row = (title, part, options) => h('div', { class: 'hero-row' }, h('h3', {}, title),
+      h('div', { class: 'hero-options' }, options.map(opt => h('button', {
+        class: `hero-opt ${store.hero[part] === opt ? 'on' : ''}`, 'aria-label': `${part} ${opt}`,
+        onclick: () => { audio.fx('pop', { gain: 0.5 }); store.setHero(part, opt); render(); },
+      }, heroEl('ready', { ...store.hero, [part]: opt })))));
+    rows.replaceChildren(
+      row('Cape', 'cape', heroParts.capes),
+      row('Hat', 'hat', heroParts.hats),
+      row('Brush', 'brush', heroParts.brushes));
+  };
+  render();
+  ov.replaceChildren(h('div', { class: 'sheet' },
+    h('button', { class: 'close', onclick: close, 'aria-label': 'Close' }, '×'),
+    h('h2', {}, 'My Hero'), preview, rows,
+    h('div', { style: { textAlign: 'center', marginTop: '16px' } }, h('button', { class: 'btn', onclick: close }, 'Done'))));
+  ov.hidden = false;
+  ov.onclick = e => { if (e.target === ov) close(); };
 }
 
 async function boot() {

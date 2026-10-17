@@ -2,7 +2,7 @@
 // the sticker calendar.
 
 import { $, h, img } from './dom.js';
-import { ART, catalog } from './assets.js';
+import { ART, catalog, allEmoji } from './assets.js';
 import { store, nightKey } from './store.js';
 import { audio } from './audio.js';
 
@@ -18,18 +18,22 @@ function openSheet(...content) {
 
 export function showCollection(highlight = null) {
   const owned = store.collection;
-  const total = catalog.worlds.reduce((n, w) => n + w.emoji.length, 0);
-  const have = Object.keys(owned).length;
+  const all = allEmoji();
+  const have = all.filter(e => owned[e.id]).length;
+  const slot = e => owned[e.id]
+    ? h('div', { class: `slot ${e.gold ? 'gold' : ''} ${e.id === highlight ? 'new' : ''}` }, img(ART.emoji(e.id)), h('span', {}, e.name))
+    : h('div', { class: `slot missing ${e.gold ? 'gold' : ''}` }, img(ART.icon(e.gold ? 'mystery_gold' : 'mystery')), h('span', {}, '?'));
   const sections = catalog.worlds.map(w => {
-    const got = w.emoji.filter(e => owned[e.id]).length;
+    const items = all.filter(e => e.world === w.id);
+    const got = items.filter(e => owned[e.id]).length;
     return [
-      h('h3', {}, h('span', {}, w.name), h('span', {}, `${got} / ${w.emoji.length}`)),
-      h('div', { class: 'grid' }, w.emoji.map(e => owned[e.id]
-        ? h('div', { class: `slot ${e.id === highlight ? 'new' : ''}` }, img(ART.emoji(e.id)), h('span', {}, e.name))
-        : h('div', { class: 'slot missing' }, img(ART.icon('mystery')), h('span', {}, '?')))),
+      h('h3', {}, h('span', {}, w.name), h('span', {}, `${got} / ${items.length}`)),
+      h('div', { class: 'grid' }, items.filter(e => !e.gold).map(slot)),
+      h('div', { class: 'grid sparkly' }, items.filter(e => e.gold).map(slot)),
     ];
   });
-  openSheet(h('h2', {}, img(ART.icon('book')), 'My Collection'), h('div', {}, `${have} of ${total} found`), ...sections);
+  openSheet(h('h2', {}, img(ART.icon('book')), 'My Collection'),
+    h('div', {}, `${have} of ${all.length} found · sparkly ones are extra rare!`), ...sections);
 }
 
 export function showCalendar() {
@@ -49,6 +53,7 @@ export function showCalendar() {
       cells.push(h('div', { class: `day ${key === today ? 'today' : ''}` },
         h('span', { class: 'n' }, d),
         night?.done ? img(ART.icon('tooth_sticker'), 's') : null,
+        store.mornings[key] ? img(ART.icon('sun_sticker'), 'm') : null,
         store.swish[key] ? img(ART.icon('star_small'), 'g') : null));
     }
     const label = view.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });

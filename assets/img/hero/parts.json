@@ -1,0 +1,38 @@
+{
+ "capes": [
+  "blue",
+  "red",
+  "green",
+  "purple",
+  "orange",
+  "pink"
+ ],
+ "brushes": [
+  "pink",
+  "blue",
+  "green",
+  "yellow",
+  "purple"
+ ],
+ "hats": [
+  "none",
+  "crown",
+  "cap",
+  "wizard",
+  "headband",
+  "bunny",
+  "pirate"
+ ],
+ "poses": [
+  "ready",
+  "cheer",
+  "wait",
+  "swish",
+  "sleep"
+ ],
+ "brushPoses": [
+  "ready",
+  "cheer",
+  "wait"
+ ]
+}

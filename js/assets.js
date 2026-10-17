@@ -1,16 +1,15 @@
-// Paths to the generated art, plus the emoji catalogue and mouth-guide layout
-// written by tools/gen_art.py.
+// Paths to the generated art, plus the emoji catalogue, mouth-guide layout and
+// hero parts written by tools/gen_art.py.
 
 const I = 'assets/img/';
 
 export const ART = {
   icon: n => `${I}icons/${n}.svg`,
   goblin: n => `${I}goblins/${n}.svg`,
-  buddy: pose => `${I}buddy/${pose}.svg`,
+  hero: n => `${I}hero/${n}.svg`,
   world: (id, night = false) => `${I}worlds/${id}${night ? '_night' : ''}.svg`,
   home: `${I}worlds/home.svg`,
   emoji: id => `${I}emoji/${id}.svg`,
-  emojiPng: id => `${I}emoji/${id}.png`,
   guide: n => `${I}guide/${n}.svg`,
 };
 
@@ -21,25 +20,31 @@ export const ZONE_LABELS = {
   top_left: 'Top teeth, left side', top_front: 'Top teeth, front', top_right: 'Top teeth, right side',
   bottom_right: 'Bottom teeth, right side', bottom_front: 'Bottom teeth, front', bottom_left: 'Bottom teeth, left side',
 };
-export const GAPS = ['gap_top_mid', 'gap_bottom_mid', 'gap_top_left', 'gap_top_right', 'gap_bottom_left', 'gap_bottom_right'];
-export const GAP_LABELS = {
-  gap_top_mid: 'Top front teeth, middle', gap_bottom_mid: 'Bottom front teeth, middle',
-  gap_top_left: 'Top teeth, next gap left', gap_top_right: 'Top teeth, next gap right',
-  gap_bottom_left: 'Bottom teeth, next gap left', gap_bottom_right: 'Bottom teeth, next gap right',
-};
 
 export let catalog = null;
 export let layout = null;
+export let heroParts = null;
+export let GAPS = [];
 
 export async function loadData() {
-  [catalog, layout] = await Promise.all([
+  [catalog, layout, heroParts] = await Promise.all([
     fetch(`${I}emoji/catalog.json`).then(r => r.json()),
     fetch(`${I}guide/layout.json`).then(r => r.json()),
+    fetch(`${I}hero/parts.json`).then(r => r.json()),
   ]);
+  GAPS = layout.gapOrder;
 }
 
+// Every collectible: each base emoji plus its rare sparkly (gold) version.
 export function allEmoji() {
-  return catalog.worlds.flatMap(w => w.emoji.map(e => ({ ...e, world: w.id })));
+  return catalog.worlds.flatMap(w => w.emoji.flatMap(e => [
+    { id: e.id, name: e.name, world: w.id, gold: false },
+    { id: `${e.id}_gold`, name: `Sparkly ${e.name}`, world: w.id, gold: true, base: e.id },
+  ]));
+}
+
+export function emojiInfo(id) {
+  return allEmoji().find(e => e.id === id);
 }
 
 export function worldName(id) {

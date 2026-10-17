@@ -5,12 +5,11 @@ const KEY = 'gumgoblins.v1';
 export const DEFAULT_SETTINGS = {
   brushMinutes: 2,
   passMark: 0.3,
-  flossGaps: 3,
-  flossSeconds: 5,
+  flossGaps: 10,
+  flossSeconds: 3,
   swishEnabled: false,
   swishSeconds: 20,
   volMusic: 0.5,
-  volVoice: 0.9,
   volFx: 0.7,
   camera: true,
   sensitivity: 'medium',
@@ -22,6 +21,8 @@ function blank() {
     collection: {},   // emoji id -> night it was earned
     nights: {},       // night -> { passed, emoji, world }
     swish: {},        // night -> true (gold star)
+    mornings: {},     // night -> true (sun sticker)
+    hero: { cape: 'blue', hat: 'none', brush: 'pink' },
     bigEscaped: false,
     worldByNight: {},
   };
@@ -35,6 +36,8 @@ function load() {
     if (raw) {
       const d = { ...blank(), ...JSON.parse(raw) };
       d.settings = { ...DEFAULT_SETTINGS, ...d.settings };
+      // Older saves: floss defaults changed to more, quicker gaps.
+      if (d.settings.flossGaps < 6) { d.settings.flossGaps = DEFAULT_SETTINGS.flossGaps; d.settings.flossSeconds = DEFAULT_SETTINGS.flossSeconds; }
       return d;
     }
   } catch (e) { /* private mode or corrupted: start fresh */ }
@@ -60,6 +63,9 @@ export const store = {
   get collection() { return data.collection; },
   get nights() { return data.nights; },
   get swish() { return data.swish; },
+  get mornings() { return data.mornings; },
+  get hero() { return data.hero; },
+  setHero(part, value) { data.hero = { ...data.hero, [part]: value }; save(); },
   get bigEscaped() { return data.bigEscaped; },
   set bigEscaped(v) { data.bigEscaped = v; save(); },
 
@@ -75,11 +81,13 @@ export const store = {
   addEmoji(id) { data.collection[id] = nightKey(); save(); },
   completeNight(info) { data.nights[nightKey()] = { ...(data.nights[nightKey()] || {}), ...info, done: true }; save(); },
   addSwishStar() { data.swish[nightKey()] = true; save(); },
+  // Mornings count by calendar date (no 4am shift).
+  addMorningSun() { data.mornings[nightKey(new Date(Date.now() + 4 * 3600 * 1000))] = true; save(); },
 
   resetProgress() {
-    const settings = data.settings;
+    const { settings, hero } = data;
     data = blank();
-    data.settings = settings;
+    Object.assign(data, { settings, hero });
     save();
   },
 };

@@ -154,6 +154,15 @@ def inst_shaker(f, dur, vel):
     return x * np.exp(-t * 60) * vel
 
 
+def inst_crash(f, dur, vel):
+    n = int(1.6 * SR)
+    t = np.arange(n) / SR
+    rng = np.random.default_rng(21)
+    x = rng.uniform(-1, 1, n)
+    x = x - lp_np(x, 4000)
+    return x * np.exp(-t * 2.5) * vel
+
+
 def inst_tom(f, dur, vel):
     n = int(0.5 * SR)
     t = np.arange(n) / SR
@@ -170,7 +179,7 @@ def lp_np(x, cutoff):
     return np.fft.irfft(X * H, len(x))
 
 
-INSTR = {"pluck": inst_pluck, "lead": inst_lead, "bass": inst_bass, "pad": inst_pad,
+INSTR = {"crash": inst_crash, "brass": lambda f, d, v: inst_brass(f, d, v), "pluck": inst_pluck, "lead": inst_lead, "bass": inst_bass, "pad": inst_pad,
          "marimba": inst_marimba, "musicbox": inst_musicbox, "kick": inst_kick,
          "snare": inst_snare, "shaker": inst_shaker, "tom": inst_tom}
 
@@ -242,25 +251,42 @@ def song_adventure():
 
 
 def song_boss():
-    bpm, ev = 128, []
-    chords = [("A2", "m"), ("F2", ""), ("G2", ""), ("E2", "m"), ("A2", "m"), ("F2", ""), ("G2", ""), ("E2", "")]
+    """Big-goblin battle: fast, heroic and bright, building to a climax."""
+    bpm, ev = 152, []
+    # D major hero theme with a lift in the second half.
+    chords = [("B2", "m"), ("G2", ""), ("D3", ""), ("A2", ""), ("B2", "m"), ("G2", ""), ("A2", ""), ("A2", ""),
+              ("G2", ""), ("A2", ""), ("F#2", "m"), ("B2", "m"), ("G2", ""), ("A2", ""), ("D3", ""), ("A2", "")]
     for bar, (root, kind) in enumerate(chords):
         b0 = bar * 4
         r = midi(root)
-        for k in range(8):
-            ev.append((b0 + k * 0.5, 0.3, r + (12 if k % 4 == 3 else 0), 0.4, "bass"))
-        ev.append((b0, 4, r + 24, 0.06, "pad"))
-        ev.append((b0, 4, r + 19 if kind != "m" else r + 15, 0.04, "pad"))
+        for k in range(8):  # galloping octave bass
+            ev.append((b0 + k * 0.5, 0.35, r + (12 if k % 2 else 0), 0.4, "bass"))
+        for k in range(16):  # sixteenth-note string ostinato
+            n = chord_notes(r + 24, kind)[[0, 1, 2, 1][k % 4]]
+            ev.append((b0 + k * 0.25, 0.2, n, 0.06 + (0.03 if k % 4 == 0 else 0), "pluck"))
+        for n in chord_notes(r + 12, kind):  # brass stabs
+            ev.append((b0, 0.6, n, 0.12, "brass"))
+            ev.append((b0 + 2.5, 0.4, n, 0.09, "brass"))
+        ev.append((b0, 4, r + 24, 0.05, "pad"))
         ev += [(b0 + k, 0.2, None, 0.5, "kick") for k in range(4)]
-        ev += [(b0 + 1, 0.2, None, 0.25, "snare"), (b0 + 3, 0.2, None, 0.25, "snare")]
-        if bar % 2 == 1:
-            ev += [(b0 + 3, 0.2, "G2", 0.3, "tom"), (b0 + 3.5, 0.2, "D2", 0.3, "tom")]
-    ost = [["A4", "C5", "E5", "C5", "A4", "C5", "E5", "G5"], ["F4", "A4", "C5", "A4", "F4", "A4", "C5", "F5"],
-           ["G4", "B4", "D5", "B4", "G4", "B4", "D5", "G5"], ["E4", "G4", "B4", "G4", "E5", "-", "B4", "-"],
-           ["A4", "C5", "E5", "C5", "A5", "-", "E5", "-"], ["F4", "A4", "C5", "F5", "A5", "-", "F5", "-"],
-           ["G4", "B4", "D5", "G5", "B5", "-", "D6", "-"], ["E5", "-", "G#5", "-", "B5", "-", "E5", "-"]]
-    ev += melody(ost, 0.5, 0.16, "pluck")
-    return bpm, 32, ev
+        ev += [(b0 + 1, 0.2, None, 0.3, "snare"), (b0 + 3, 0.2, None, 0.3, "snare")]
+        ev += [(b0 + k * 0.5 + 0.25, 0.1, None, 0.07, "shaker") for k in range(8)]
+        if bar % 4 == 0:
+            ev.append((b0, 1, None, 0.22, "crash"))
+        if bar % 4 == 3:  # drum fill into the next phrase
+            ev += [(b0 + 3 + k * 0.25, 0.2, ["A2", "F2", "D2", "A1"][k], 0.32, "tom") for k in range(4)]
+    mel = [  # soaring brass melody
+        ["F#5", "-", "-", "D5", "B4", "-", "D5", "F#5"], ["G5", "-", "-", "-", "B5", "-", "A5", "G5"],
+        ["F#5", "-", "A5", "-", "D6", "-", "-", "-"], ["C#6", "-", "B5", "-", "A5", "-", "-", "-"],
+        ["F#5", "-", "-", "D5", "B4", "-", "D5", "F#5"], ["G5", "-", "-", "-", "B5", "-", "D6", "-"],
+        ["E6", "-", "-", "-", "C#6", "-", "A5", "-"], ["A5", "-", "B5", "-", "C#6", "-", "E6", "-"],
+        ["D6", "-", "-", "-", "B5", "-", "G5", "-"], ["C#6", "-", "-", "-", "A5", "-", "E5", "-"],
+        ["F#5", "-", "A5", "-", "C#6", "-", "F#6", "-"], ["F#6", "-", "-", "E6", "D6", "-", "B5", "-"],
+        ["G5", "-", "B5", "-", "D6", "-", "G6", "-"], ["E6", "-", "F#6", "-", "G6", "-", "E6", "-"],
+        ["F#6", "-", "-", "-", "D6", "-", "A5", "-"], ["A5", "-", "C#6", "-", "E6", "-", "A6", "-"]]
+    ev += melody(mel, 0.5, 0.2, "brass")
+    ev += melody(mel, 0.5, 0.08, "lead")
+    return bpm, 64, ev
 
 
 def song_calm():
@@ -416,6 +442,16 @@ def fx_tap():
     return soft_start(x) * 0.25
 
 
+def fx_zap():
+    """Toothpaste bolt: a quick bright upward sparkle."""
+    n = int(0.22 * SR)
+    t = np.arange(n) / SR
+    f = 900 + 1800 * (t / t[-1])
+    x = np.sin(2 * np.pi * np.cumsum(f) / SR) * np.exp(-t * 18)
+    x += 0.3 * np.sin(2 * np.pi * np.cumsum(f * 1.5) / SR) * np.exp(-t * 26)
+    return soft_start(x) * 0.22
+
+
 def fx_hit():
     n = int(0.4 * SR)
     t = np.arange(n) / SR
@@ -493,7 +529,7 @@ def main():
         encode(name + ".mp3", x, "112k")
         meta["music"][name] = {"loop": loop}
         print(name, f"{loop:.2f}s loop")
-    fx = {"pop": fx_pop(), "chime": fx_chime(), "fanfare": fx_fanfare(), "sparkle": fx_sparkle(),
+    fx = {"zap": fx_zap(), "pop": fx_pop(), "chime": fx_chime(), "fanfare": fx_fanfare(), "sparkle": fx_sparkle(),
           "whoosh": fx_whoosh(), "wave": fx_wave(), "tap": fx_tap(), "hit": fx_hit(),
           "giggle": fx_giggle(), "resume": two_tone("C5", "G5"), "pause": two_tone("G4", "C4", 0.2),
           "defeat": fx_defeat()}

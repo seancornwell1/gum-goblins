@@ -242,9 +242,9 @@ TOOTH = ("M80 110 C76 56 124 44 150 64 C176 44 224 56 220 110 C220 160 212 196 2
          "C114 304 100 286 94 236 C88 196 80 160 80 110 Z")
 
 
-def toothbrush(x, y, angle, scale=1.0):
+def toothbrush(x, y, angle, scale=1.0, color="#ff5c8a"):
     return (f'<g transform="translate({x} {y}) rotate({angle}) scale({scale})">'
-            f'<rect x="-8" y="-10" width="16" height="120" rx="8" fill="#ff5c8a" {S(5)}/>'
+            f'<rect x="-8" y="-10" width="16" height="120" rx="8" fill="{color}" {S(5)}/>'
             f'<rect x="-11" y="-58" width="22" height="52" rx="6" fill="#fff" {S(5)}/>'
             f'<path d="M-11 -48 L-24 -48 M-11 -36 L-24 -36 M-11 -24 L-24 -24 M-11 -12 L-24 -12" '
             f'stroke="#5ad1ff" stroke-width="7" stroke-linecap="round"/>'
@@ -252,10 +252,12 @@ def toothbrush(x, y, angle, scale=1.0):
             f'</g>')
 
 
-def buddy(pose="ready"):
+def buddy(pose="ready", cape_color="#3a86ff", brush_color="#ff5c8a", layer=None):
+    """Whole buddy, or one layer of it: "cape", "body" (no cape/brush) or "brush"."""
     cape = (f'<path d="M96 120 C60 170 50 250 44 296 Q150 320 256 296 C250 250 240 170 204 120 Z" '
-            f'fill="#3a86ff" {S()}/>'
-            f'<path d="M120 286 Q150 300 180 286" fill="none" stroke="#7fb2ff" stroke-width="6" stroke-linecap="round"/>')
+            f'fill="{cape_color}" {S()}/>'
+            f'<path d="M120 286 Q150 300 180 286" fill="none" stroke="#ffffff" stroke-opacity=".45" stroke-width="6" stroke-linecap="round"/>')
+    brush = ""
     shine = '<path d="M104 92 Q110 70 132 68" fill="none" stroke="#fff" stroke-width="10" stroke-linecap="round" opacity=".9"/>'
     body = f'<path d="{TOOTH}" fill="#fdfbff" {S()}/>' + \
         f'<path d="M96 200 C110 230 190 230 204 200" fill="none" stroke="#e3dcf2" stroke-width="10" stroke-linecap="round"/>'
@@ -265,18 +267,19 @@ def buddy(pose="ready"):
         face = eyes(150, 122, 28, 16, look=(0.2, 0)) + blush(150, 150, 46, 11) + smile(150, 146, 18, 10, fill="#ff7aa8")
         arms = (f'<path d="M86 178 Q60 200 52 226" fill="none" {S(12)}/><path d="M86 178 Q60 200 52 226" fill="none" stroke="#fdfbff" stroke-width="6" stroke-linecap="round"/>'
                 f'<path d="M214 176 Q240 160 252 136" fill="none" {S(12)}/><path d="M214 176 Q240 160 252 136" fill="none" stroke="#fdfbff" stroke-width="6" stroke-linecap="round"/>')
-        extra = toothbrush(256, 136, 20)
+        brush = toothbrush(256, 136, 20, color=brush_color)
     elif pose == "cheer":
         face = eyes(150, 122, 28, 16, "closed") + blush(150, 148, 46, 12) + smile(150, 142, 22, 13, fill="#ff7aa8")
         arms = (f'<path d="M88 170 Q60 140 56 104" fill="none" {S(12)}/><path d="M88 170 Q60 140 56 104" fill="none" stroke="#fdfbff" stroke-width="6" stroke-linecap="round"/>'
                 f'<path d="M212 170 Q240 140 244 104" fill="none" {S(12)}/><path d="M212 170 Q240 140 244 104" fill="none" stroke="#fdfbff" stroke-width="6" stroke-linecap="round"/>')
-        extra = toothbrush(246, 104, -10) + sparkle_shape(48, 70, 16) + sparkle_shape(268, 60, 12)
+        brush = toothbrush(246, 104, -10, color=brush_color)
+        extra = sparkle_shape(48, 70, 16) + sparkle_shape(268, 60, 12)
     elif pose == "wait":
         face = eyes(150, 122, 28, 16, look=(-0.6, -0.3)) + blush(150, 150, 46, 11) + \
             f'<ellipse cx="150" cy="152" rx="8" ry="7" fill="#ff7aa8" {S(4)}/>'
         arms = (f'<path d="M88 178 Q70 210 80 236" fill="none" {S(12)}/><path d="M88 178 Q70 210 80 236" fill="none" stroke="#fdfbff" stroke-width="6" stroke-linecap="round"/>'
                 f'<path d="M212 178 Q230 210 220 236" fill="none" {S(12)}/><path d="M212 178 Q230 210 220 236" fill="none" stroke="#fdfbff" stroke-width="6" stroke-linecap="round"/>')
-        extra = toothbrush(234, 250, 160, 0.8)
+        brush = toothbrush(234, 250, 160, 0.8, color=brush_color)
     elif pose == "swish":
         face = (eyes(150, 112, 28, 14, "closed") +
                 f'<circle cx="104" cy="150" r="30" fill="#fdfbff" {S(5)}/><circle cx="196" cy="150" r="30" fill="#fdfbff" {S(5)}/>'
@@ -293,8 +296,14 @@ def buddy(pose="ready"):
         extra = (f'<path d="M84 92 C96 30 180 10 236 56 Q250 86 262 110 Q236 70 216 80 C190 66 120 70 84 92 Z" fill="#3a86ff" {S(5)}/>'
                  f'<path d="M84 92 Q150 60 220 82" fill="none" stroke="#fff" stroke-width="12" stroke-linecap="round"/>'
                  f'<circle cx="266" cy="114" r="14" fill="#fff" {S(4)}/>')
-    return svg(300, 320, f'<ellipse cx="150" cy="310" rx="90" ry="9" fill="#000" opacity=".15"/>'
-                         f'{cape}{arms}{body}{shine}{scarf}{face}{extra}')
+    shadow = '<ellipse cx="150" cy="310" rx="90" ry="9" fill="#000" opacity=".15"/>'
+    if layer == "cape":
+        return svg(300, 320, shadow + cape)
+    if layer == "body":
+        return svg(300, 320, f'{arms}{body}{shine}{scarf}{face}{extra}')
+    if layer == "brush":
+        return svg(300, 320, brush)
+    return svg(300, 320, f'{shadow}{cape}{arms}{body}{shine}{scarf}{face}{brush}{extra}')
 
 
 def sparkle_shape(x, y, r, color="#ffd23f"):
@@ -520,14 +529,16 @@ ZONES = [  # id, row, teeth indexes (screen-left = his left, like a mirror)
     ("bottom_left", "bot", [0, 1, 2]),
 ]
 
-GAPS = [  # id, row, gap between tooth i and i+1 — front teeth first
-    ("gap_top_mid", "top", 4),
-    ("gap_bottom_mid", "bot", 4),
-    ("gap_top_left", "top", 3),
-    ("gap_top_right", "top", 5),
-    ("gap_bottom_left", "bot", 3),
-    ("gap_bottom_right", "bot", 5),
-]
+def _gap_order():
+    """All 18 gaps (9 per row), front teeth first, then working outwards."""
+    order = [("top", 4), ("bot", 4)]
+    for d in range(1, 5):
+        for row in ("top", "bot"):
+            order += [(row, 4 - d), (row, 4 + d)]
+    return [(f"gap_{row}_{i}", row, i) for row, i in order]
+
+
+GAPS = _gap_order()
 
 
 def mouth():
@@ -565,10 +576,11 @@ def mouth():
         a, c = teeth[i], teeth[i + 1]
         gx = (a[0] + a[2] / 2 + c[0] - c[2] / 2) / 2
         gy = (a[1] + c[1]) / 2 + (a[3] + c[3]) / 4
-        hl = (f'<ellipse cx="{gx:.1f}" cy="{gy:.1f}" rx="24" ry="38" fill="#7cf5ff" fill-opacity=".45" stroke="#2ad1ff" stroke-width="7"/>'
+        hl = (f'<ellipse cx="{gx:.1f}" cy="{gy:.1f}" rx="15" ry="32" fill="#7cf5ff" fill-opacity=".45" stroke="#2ad1ff" stroke-width="7"/>'
               f'<line x1="{gx:.1f}" y1="{gy-30:.1f}" x2="{gx:.1f}" y2="{gy+30:.1f}" stroke="#fff" stroke-width="4" stroke-dasharray="6 6"/>')
         write(f"guide/{gid}.svg", svg(MW, MH, hl))
         layout["gaps"][gid] = {"x": gx / MW, "y": gy / MH, "row": row}
+    layout["gapOrder"] = [g[0] for g in GAPS]
     with open(os.path.join(OUT, "guide", "layout.json"), "w") as f:
         json.dump(layout, f, indent=1)
 
@@ -905,6 +917,7 @@ WORLDS = [
 
 
 def main():
+    import art_extra as X
     if os.path.isdir(OUT):
         shutil.rmtree(OUT)
     os.makedirs(OUT)
@@ -913,35 +926,37 @@ def main():
         write(f"goblins/{name}_sleep.svg", fn("closed"))
     for mode, suffix in [("open", ""), ("squint", "_hurt"), ("dizzy", "_dizzy"), ("closed", "_sleep")]:
         write(f"goblins/big{suffix}.svg", goblin_big(mode))
-    for pose in ["ready", "cheer", "wait", "swish", "sleep"]:
-        write(f"buddy/{pose}.svg", buddy(pose))
+    hero = X.hero_files(write)
+    with open(os.path.join(OUT, "hero", "parts.json"), "w") as f:
+        json.dump(hero, f, indent=1)
     write("worlds/home.svg", bg_home())
     catalog = {"worlds": []}
-    for wid, title, bg, em in WORLDS:
+    for wid, title, bg, em in WORLDS + X.MORE_WORLDS:
         write(f"worlds/{wid}.svg", bg(False))
         write(f"worlds/{wid}_night.svg", bg(True))
+        designs = dict(em())
+        designs.update(X.EXTRA_FOR.get(wid, dict)())
         items = []
-        for eid, (label, content) in em().items():
+        for eid, (label, content) in designs.items():
             write(f"emoji/{wid}/{eid}.svg", content)
+            write(f"emoji/{wid}/{eid}_gold.svg", X.sparkly(content))
             items.append({"id": f"{wid}/{eid}", "name": label})
         catalog["worlds"].append({"id": wid, "name": title, "emoji": items})
     with open(os.path.join(OUT, "emoji", "catalog.json"), "w") as f:
         json.dump(catalog, f, indent=1)
     mouth()
     icon_files()
-    # PNG copies of the emoji for drawing the sticker onto the photo, and app icons.
+    for k, v in X.extra_icons().items():
+        write(f"icons/{k}.svg", v)
     if shutil.which("rsvg-convert"):
-        for w in catalog["worlds"]:
-            for e in w["emoji"]:
-                src = os.path.join(OUT, "emoji", e["id"] + ".svg")
-                subprocess.run(["rsvg-convert", "-w", "384", "-h", "384", src, "-o", src[:-4] + ".png"], check=True)
         app_icon = svg(512, 512, '<rect width="512" height="512" rx="0" fill="#b388ff"/>'
                        '<g transform="translate(56 70) scale(1.33)">' + goblin_a("open").split("</defs>", 1)[1][:-6] + '</g>')
         write("icons/app.svg", app_icon)
         for size in (180, 192, 512):
             subprocess.run(["rsvg-convert", "-w", str(size), "-h", str(size), os.path.join(OUT, "icons", "app.svg"),
                             "-o", os.path.join(OUT, "icons", f"app-{size}.png")], check=True)
-    print("art written to", OUT)
+    n = sum(len(w["emoji"]) for w in catalog["worlds"])
+    print(f"art written to {OUT}: {len(catalog['worlds'])} worlds, {n} emoji (+{n} sparkly)")
 
 
 if __name__ == "__main__":

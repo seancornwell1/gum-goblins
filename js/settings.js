@@ -35,7 +35,7 @@ function vol(label, key, ctx) {
   const input = h('input', {
     type: 'range', min: 0, max: 1, step: 0.05, value: store.settings[key],
     oninput: e => { store.setSetting(key, +e.target.value); out.textContent = Math.round(e.target.value * 100); ctx.applyVolumes(); },
-    onchange: () => audio.fx(key === 'volVoice' ? 'chime' : key === 'volMusic' ? 'chime' : 'pop'),
+    onchange: () => audio.fx(key === 'volMusic' ? 'chime' : 'pop'),
   });
   return h('div', { class: 'vol' }, h('span', {}, label), input, out);
 }
@@ -89,9 +89,9 @@ export function openSettings(ctx) {
       seg('passMark', [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8], v => `${Math.round(v * 100)}%`),
       h('small', {}, 'How much of the brushing time needs real movement to beat the big goblin. Start easy and raise it over time.')),
     h('div', { class: 'set' }, h('span', { class: 't' }, 'Floss gaps'),
-      seg('flossGaps', [1, 2, 3, 4, 5, 6]),
+      seg('flossGaps', [6, 8, 10, 12, 14, 16, 18]),
       h('span', { class: 't', style: { marginTop: '10px' } }, 'Seconds per gap'),
-      seg('flossSeconds', [3, 5, 8, 10, 15], v => `${v}s`),
+      seg('flossSeconds', [2, 3, 4, 5, 8], v => `${v}s`),
       h('small', {}, 'Front teeth first, always in the same order.')),
     h('div', { class: 'set' }, h('span', { class: 't' }, 'Swish mode'),
       seg('swishEnabled', [false, true], v => v ? 'On' : 'Off', () => ctx.refreshHome()),
@@ -99,9 +99,9 @@ export function openSettings(ctx) {
       seg('swishSeconds', [10, 15, 20, 30, 45, 60], v => `${v}s`),
       h('small', {}, 'Practise with plain water first. Ask his dentist which rinse to use and when.')),
     h('div', { class: 'set' }, h('span', { class: 't' }, 'Volume'),
-      vol('Music', 'volMusic', ctx), vol('Voice', 'volVoice', ctx), vol('Effects', 'volFx', ctx),
+      vol('Music', 'volMusic', ctx), vol('Effects', 'volFx', ctx),
       h('div', { class: 'actions', style: { marginTop: '8px' } },
-        h('button', { onclick: () => { audio.unlock(); audio.fx('chime'); audio.say('there_you_are'); } }, '🔊 Test sound')),
+        h('button', { onclick: () => { audio.unlock(); audio.fx('chime'); audio.fx('fanfare'); } }, '🔊 Test sound')),
       h('small', {}, 'Test with the ringer switch both on and off: sound should play either way.')),
     h('div', { class: 'set' }, h('span', { class: 't' }, 'Camera tracking'),
       seg('camera', [true, false], v => v ? 'On' : 'Off', v => { if (!v) toast('Timers will run without the camera'); }),

@@ -42,13 +42,15 @@ await shot('03-paused');
 await page.evaluate(() => { window.__sim.inView = true; });
 await page.waitForTimeout(400);
 if (!(await page.isHidden('#pause'))) throw new Error('pause overlay did not clear');
+await page.waitForTimeout(1500);
+await shot('03b-bolts');
 await until(() => !!document.querySelector('.big'));
 await page.waitForTimeout(800);
 await shot('04-big-goblin');
 await until(new Function('return ' + hasText('Get your floss pick')));
 await page.waitForTimeout(500);
 await shot('05-floss-pause');
-await page.click('text=I\'m ready!');
+await page.click('text=Ready!');
 await page.waitForTimeout(2600);
 await shot('06-flossing');
 await until(new Function('return ' + hasText('Goodnight')), 90000);
@@ -65,6 +67,26 @@ await page.waitForTimeout(4000);
 await shot('09-goodnight');
 await until(() => document.querySelector('.goodnight-text .btn')?.style.opacity === '1', 30000);
 await page.click('.goodnight-text .btn');
+await page.waitForSelector('#go-brush');
+
+// ---- hero dress-up
+await page.click('#my-hero');
+await page.waitForTimeout(500);
+await page.click('[aria-label="hat crown"]');
+await page.click('[aria-label="cape red"]');
+await shot('09b-hero-editor');
+await page.click('#overlay .btn:has-text("Done")');
+const look = await page.evaluate(() => JSON.parse(localStorage.getItem('gumgoblins.v1')).hero);
+if (look.hat !== 'crown' || look.cape !== 'red') throw new Error('hero look not saved');
+
+// ---- morning brush (no flossing)
+await page.click('#go-morning');
+await until(new Function('return ' + hasText('Good morning!')), 90000);
+await page.waitForTimeout(1200);
+await shot('09c-morning');
+const sun = await page.evaluate(() => Object.keys(JSON.parse(localStorage.getItem('gumgoblins.v1')).mornings).length);
+if (sun !== 1) throw new Error('morning sun not recorded');
+await page.click('text=All done');
 await page.waitForSelector('#go-brush');
 
 // ---- settings via long press; turn on swish

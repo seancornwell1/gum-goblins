@@ -1,10 +1,10 @@
-// Plays the generated music, effects and narration through Web Audio, with
+// Plays the generated music and effects through Web Audio, with
 // separate volume controls. Works with the iPhone ringer switch on silent:
 // the audio session is set to "playback" (Safari 16.4+), and on older iOS a
 // silent looping <audio> element forces the same media playback category.
 
 const MUSIC = ['music_adventure', 'music_boss', 'music_calm', 'music_lullaby'];
-const FX = ['pop', 'chime', 'fanfare', 'sparkle', 'whoosh', 'wave', 'tap', 'hit', 'giggle', 'resume', 'pause', 'defeat'];
+const FX = ['zap', 'pop', 'chime', 'fanfare', 'sparkle', 'whoosh', 'wave', 'tap', 'hit', 'giggle', 'resume', 'pause', 'defeat'];
 // Per-track trims so every piece sits at a calm level next to the others.
 const MUSIC_TRIM = { music_adventure: 0.8, music_boss: 0.8, music_calm: 0.75, music_lullaby: 0.6 };
 
@@ -14,11 +14,9 @@ class AudioEngine {
     this.buffers = new Map();
     this.loading = null;
     this.music = null;       // { name, src, gain }
-    this.voiceSrc = null;
     this.duckLevel = 1;
     this.loopStart = 1;
     this.loops = {};
-    this.lines = [];
   }
 
   // Must be called from inside a tap handler the first time.
@@ -45,11 +43,9 @@ class AudioEngine {
     this.musicBus = this.ctx.createGain();
     this.duckBus = this.ctx.createGain();
     this.musicBus.connect(this.duckBus).connect(this.master);
-    this.voiceBus = this.ctx.createGain();
-    this.voiceBus.connect(this.master);
     this.fxBus = this.ctx.createGain();
     this.fxBus.connect(this.master);
-    this.applyVolumes(this.vols || { music: .5, voice: .9, fx: .7 });
+    this.applyVolumes(this.vols || { music: .5, fx: .7 });
 
     document.addEventListener('visibilitychange', () => {
       if (!document.hidden && this.ctx.state !== 'running') this.ctx.resume().catch(() => {});
@@ -62,14 +58,11 @@ class AudioEngine {
     const meta = await fetch('assets/audio/music.json').then(r => r.json());
     this.loopStart = meta.loopStart;
     for (const [k, v] of Object.entries(meta.music)) this.loops[k] = v.loop;
-    const lines = await fetch('assets/audio/voice/lines.json').then(r => r.json());
-    this.lines = Object.keys(lines.lines);
     const jobs = [
       ...MUSIC.map(n => [n, `assets/audio/${n}.mp3`]),
       ...FX.map(n => ['fx_' + n, `assets/audio/fx_${n}.mp3`]),
-      ...this.lines.map(n => ['v_' + n, `assets/audio/voice/${n}.mp3`]),
     ];
-    // Voice and effects first so the routine can start talking straight away.
+    // Effects first so taps and pops work straight away.
     jobs.sort((a, b) => (a[0].startsWith('music') ? 1 : 0) - (b[0].startsWith('music') ? 1 : 0));
     await Promise.all(jobs.map(([k, url]) => this.load(k, url)));
     this.loaded = true;
@@ -85,12 +78,11 @@ class AudioEngine {
     }
   }
 
-  applyVolumes({ music, voice, fx }) {
-    this.vols = { music, voice, fx };
+  applyVolumes({ music, fx }) {
+    this.vols = { music, fx };
     if (!this.ctx) return;
     const t = this.ctx.currentTime;
     this.musicBus.gain.setTargetAtTime(music, t, 0.1);
-    this.voiceBus.gain.setTargetAtTime(voice, t, 0.1);
     this.fxBus.gain.setTargetAtTime(fx, t, 0.1);
   }
 
@@ -132,7 +124,7 @@ class AudioEngine {
     this.music = null;
   }
 
-  // Softly lowers the music (while paused, or under narration).
+  // Softly lowers the music (while paused).
   duck(level, time = 0.6) {
     if (!this.ctx) return;
     this.duckLevel = level;
@@ -150,45 +142,6 @@ class AudioEngine {
     src.connect(g).connect(this.fxBus);
     src.start();
     return src;
-  }
-
-  // Speaks one fixed narration line. Resolves when it finishes.
-  say(id) {
-    return new Promise(resolve => {
-      const buf = this.buffers.get('v_' + id);
-      if (!buf || !this.ctx) {
-        // Still loading: wait for it, but never hold the game up for long.
-        if (this.ctx && this.loading && !this.loaded) {
-          const timer = setTimeout(resolve, 2500);
-          this.loading.then(() => { clearTimeout(timer); this.say(id).then(resolve); });
-          return;
-        }
-        return resolve();
-      }
-      this.stopVoice();
-      const src = this.ctx.createBufferSource();
-      src.buffer = buf;
-      src.connect(this.voiceBus);
-      const restore = this.duckLevel;
-      this.duckBus.gain.setTargetAtTime(Math.min(restore, 0.55), this.ctx.currentTime, 0.08);
-      src.onended = () => {
-        if (this.voiceSrc === src) {
-          this.voiceSrc = null;
-          this.duckBus.gain.setTargetAtTime(this.duckLevel, this.ctx.currentTime, 0.2);
-        }
-        resolve();
-      };
-      src.start();
-      this.voiceSrc = src;
-    });
-  }
-
-  stopVoice() {
-    if (this.voiceSrc) {
-      const s = this.voiceSrc;
-      this.voiceSrc = null;
-      try { s.stop(); } catch (e) { /* ended */ }
-    }
   }
 }
 
