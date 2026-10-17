@@ -1,0 +1,118 @@
+{
+ "worlds": [
+  {
+   "id": "street",
+   "name": "The Street",
+   "emoji": [
+    {
+     "id": "street/hydrant",
+     "name": "Fire Hydrant"
+    },
+    {
+     "id": "street/cone",
+     "name": "Traffic Cone"
+    },
+    {
+     "id": "street/skateboard",
+     "name": "Skateboard"
+    },
+    {
+     "id": "street/sneaker",
+     "name": "Sneaker"
+    },
+    {
+     "id": "street/icepop",
+     "name": "Ice Pop"
+    },
+    {
+     "id": "street/balloon",
+     "name": "Balloon"
+    },
+    {
+     "id": "street/mailbox",
+     "name": "Mailbox"
+    },
+    {
+     "id": "street/bus",
+     "name": "School Bus"
+    }
+   ]
+  },
+  {
+   "id": "forest",
+   "name": "The Forest",
+   "emoji": [
+    {
+     "id": "forest/mushroom",
+     "name": "Mushroom"
+    },
+    {
+     "id": "forest/acorn",
+     "name": "Acorn"
+    },
+    {
+     "id": "forest/pinecone",
+     "name": "Pinecone"
+    },
+    {
+     "id": "forest/leaf",
+     "name": "Maple Leaf"
+    },
+    {
+     "id": "forest/owl",
+     "name": "Owl"
+    },
+    {
+     "id": "forest/hedgehog",
+     "name": "Hedgehog"
+    },
+    {
+     "id": "forest/campfire",
+     "name": "Campfire"
+    },
+    {
+     "id": "forest/snail",
+     "name": "Snail"
+    }
+   ]
+  },
+  {
+   "id": "city",
+   "name": "The City",
+   "emoji": [
+    {
+     "id": "city/skyscraper",
+     "name": "Skyscraper"
+    },
+    {
+     "id": "city/taxi",
+     "name": "Taxi"
+    },
+    {
+     "id": "city/pizza",
+     "name": "Pizza Slice"
+    },
+    {
+     "id": "city/donut",
+     "name": "Donut"
+    },
+    {
+     "id": "city/hotdog",
+     "name": "Hot Dog"
+    },
+    {
+     "id": "city/trafficlight",
+     "name": "Traffic Light"
+    },
+    {
+     "id": "city/pigeon",
+     "name": "Pigeon"
+    },
+    {
+     "id": "city/pretzel",
+     "name": "Pretzel"
+    }
+   ]
+  }
+ ]
+}

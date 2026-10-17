@@ -1,0 +1,120 @@
+// End-to-end smoke test in headless Chromium with a simulated camera.
+//   python3 -m http.server 8123 &   (from the repo root)
+//   NODE_PATH=$(npm root -g) node tests/flow.mjs [outdir]
+import { createRequire } from 'node:module';
+const { chromium } = createRequire(import.meta.url)('playwright');
+import fs from 'node:fs';
+
+const OUT = process.argv[2] || 'test-output';
+fs.mkdirSync(OUT, { recursive: true });
+const BASE = 'http://localhost:8123/';
+const errors = [];
+
+const browser = await chromium.launch({
+  executablePath: process.env.CHROMIUM || undefined,
+  args: ['--autoplay-policy=no-user-gesture-required'],
+});
+const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, hasTouch: true });
+const page = await ctx.newPage();
+page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
+page.on('pageerror', e => errors.push(String(e)));
+const shot = n => page.screenshot({ path: `${OUT}/${n}.png` });
+const until = async (fn, ms = 60000) => {
+  const t = Date.now();
+  while (Date.now() - t < ms) { if (await page.evaluate(fn)) return; await page.waitForTimeout(200); }
+  throw new Error('timeout waiting for ' + fn);
+};
+const hasText = t => `document.body.innerText.includes(${JSON.stringify(t)})`;
+
+await page.goto(BASE + '?sim=1&fast=12');
+await page.waitForSelector('#go-brush');
+await page.waitForTimeout(800);
+await shot('01-home');
+
+// ---- brush & floss, passing
+await page.click('#go-brush');
+await page.waitForTimeout(4500);
+await shot('02-brushing');
+await page.evaluate(() => { window.__sim.inView = false; });
+await page.waitForTimeout(600);
+if (await page.isHidden('#pause')) throw new Error('pause overlay did not appear');
+await shot('03-paused');
+await page.evaluate(() => { window.__sim.inView = true; });
+await page.waitForTimeout(400);
+if (!(await page.isHidden('#pause'))) throw new Error('pause overlay did not clear');
+await until(() => !!document.querySelector('.big'));
+await page.waitForTimeout(800);
+await shot('04-big-goblin');
+await until(new Function('return ' + hasText('Get your floss pick')));
+await page.waitForTimeout(500);
+await shot('05-floss-pause');
+await page.click('text=I\'m ready!');
+await page.waitForTimeout(2600);
+await shot('06-flossing');
+await until(new Function('return ' + hasText('Goodnight')), 90000);
+await page.waitForTimeout(2500);
+await shot('07-reward');
+const owned = await page.evaluate(() => Object.keys(JSON.parse(localStorage.getItem('gumgoblins.v1')).collection).length);
+if (owned !== 1) throw new Error('expected 1 emoji, got ' + owned);
+await page.click('text=Collection');
+await page.waitForTimeout(700);
+await shot('08-collection');
+await page.click('#overlay .close');
+await page.click('.btn:has-text("Goodnight")');
+await page.waitForTimeout(4000);
+await shot('09-goodnight');
+await until(() => document.querySelector('.goodnight-text .btn')?.style.opacity === '1', 30000);
+await page.click('.goodnight-text .btn');
+await page.waitForSelector('#go-brush');
+
+// ---- settings via long press; turn on swish
+const g = await page.locator('#gear').boundingBox();
+await page.mouse.move(g.x + 20, g.y + 20);
+await page.mouse.down();
+await page.waitForTimeout(1700);
+await page.mouse.up();
+if (await page.isHidden('#settings')) throw new Error('settings did not open');
+await page.click('#settings .set:has-text("Swish mode") button:has-text("On")');
+await shot('10-settings');
+await page.click('#settings .close');
+await page.waitForSelector('#go-swish');
+await shot('11-home-swish');
+
+// ---- swish
+await page.click('#go-swish');
+await page.waitForTimeout(800);
+await shot('12-sip');
+await page.click('text=Ready!');
+await page.waitForTimeout(900);
+await shot('13-swish');
+await until(new Function('return ' + hasText('Spit!')), 30000);
+await shot('14-spit');
+await until(() => document.querySelector('.btn')?.style.visibility === 'visible', 15000);
+await page.click('text=Done!');
+await page.waitForTimeout(1500);
+await shot('15-star');
+await page.click('text=All done');
+await page.waitForSelector('#go-brush');
+
+// ---- brush with too little movement: big goblin escapes
+await page.evaluate(() => { window.__sim.lazy = true; });
+await page.click('#go-brush');
+await until(new Function('return ' + hasText("I'll be back tomorrow")), 90000);
+await page.waitForTimeout(1200);
+await shot('16-escape');
+const esc = await page.evaluate(() => JSON.parse(localStorage.getItem('gumgoblins.v1')).bigEscaped);
+if (!esc) throw new Error('big goblin should have escaped');
+// Parent "next step" from settings skips the pause screen.
+await until(new Function('return ' + hasText('Get your floss pick')));
+await page.evaluate(() => window.__game.nextStep());
+await until(new Function('return ' + hasText('No emoji tonight')), 60000);
+await page.waitForTimeout(1500);
+await shot('17-no-emoji');
+await page.click('text=Calendar');
+await page.waitForTimeout(600);
+await shot('18-calendar');
+
+console.log('errors:', errors.length ? errors : 'none');
+await browser.close();
+if (errors.length) process.exit(1);
+console.log('flow ok');

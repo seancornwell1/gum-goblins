@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#7b3fd1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Gum Goblins">
+<title>Gum Goblins</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="assets/img/icons/app-180.png">
+<link rel="icon" type="image/png" href="assets/img/icons/app-192.png">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<div id="app">
+  <img id="bg" class="bg" alt="" src="assets/img/worlds/home.svg">
+  <div id="mirror" aria-hidden="true">
+    <video id="cam" playsinline muted autoplay></video>
+    <div id="flash"></div>
+  </div>
+  <div id="stage"></div>
+  <main id="screen"></main>
+  <nav id="strip" aria-label="Steps"></nav>
+  <button id="gear" aria-label="Parent settings (press and hold)">
+    <svg class="ring" viewBox="0 0 44 44"><circle cx="22" cy="22" r="19"/></svg>
+    <img src="assets/img/icons/gear.svg" alt="">
+  </button>
+  <div id="pause" hidden>
+    <div class="pause-art">
+      <img class="pause-buddy" src="assets/img/buddy/wait.svg" alt="">
+      <img class="pause-face" src="assets/img/icons/face_outline.svg" alt="">
+    </div>
+    <p class="pause-text">Come back to the mirror!</p>
+  </div>
+  <div id="overlay" hidden></div>
+  <div id="settings" hidden></div>
+  <div id="toast" hidden></div>
+</div>
+<video id="keepawake" src="assets/audio/keepawake.mp4" playsinline muted loop hidden></video>
+<audio id="unmute" src="assets/audio/silence.mp3" loop preload="auto"></audio>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

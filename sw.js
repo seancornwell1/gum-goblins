@@ -1,0 +1,242 @@
+// Offline support: every file the game needs is cached on install, then served
+// from the cache. Nothing is ever sent anywhere. tools/build_sw.py fills in
+// the file list and version.
+
+const VERSION = '11dbfa04e4a6';
+const FILES = [
+  "assets/audio/fx_chime.mp3",
+  "assets/audio/fx_defeat.mp3",
+  "assets/audio/fx_fanfare.mp3",
+  "assets/audio/fx_giggle.mp3",
+  "assets/audio/fx_hit.mp3",
+  "assets/audio/fx_pause.mp3",
+  "assets/audio/fx_pop.mp3",
+  "assets/audio/fx_resume.mp3",
+  "assets/audio/fx_sparkle.mp3",
+  "assets/audio/fx_tap.mp3",
+  "assets/audio/fx_wave.mp3",
+  "assets/audio/fx_whoosh.mp3",
+  "assets/audio/keepawake.mp4",
+  "assets/audio/music.json",
+  "assets/audio/music_adventure.mp3",
+  "assets/audio/music_boss.mp3",
+  "assets/audio/music_calm.mp3",
+  "assets/audio/music_lullaby.mp3",
+  "assets/audio/silence.mp3",
+  "assets/audio/voice/all_found.mp3",
+  "assets/audio/voice/big_back.mp3",
+  "assets/audio/voice/big_beaten.mp3",
+  "assets/audio/voice/big_escaped.mp3",
+  "assets/audio/voice/big_goblin.mp3",
+  "assets/audio/voice/come_back.mp3",
+  "assets/audio/voice/floss_done.mp3",
+  "assets/audio/voice/gap_bottom_left.mp3",
+  "assets/audio/voice/gap_bottom_mid.mp3",
+  "assets/audio/voice/gap_bottom_right.mp3",
+  "assets/audio/voice/gap_top_left.mp3",
+  "assets/audio/voice/gap_top_mid.mp3",
+  "assets/audio/voice/gap_top_right.mp3",
+  "assets/audio/voice/get_floss.mp3",
+  "assets/audio/voice/goodnight.mp3",
+  "assets/audio/voice/lets_brush.mp3",
+  "assets/audio/voice/lets_floss.mp3",
+  "assets/audio/voice/lines.json",
+  "assets/audio/voice/new_emoji.mp3",
+  "assets/audio/voice/no_emoji.mp3",
+  "assets/audio/voice/photo.mp3",
+  "assets/audio/voice/spit.mp3",
+  "assets/audio/voice/swish.mp3",
+  "assets/audio/voice/swish_done.mp3",
+  "assets/audio/voice/take_sip.mp3",
+  "assets/audio/voice/there_you_are.mp3",
+  "assets/audio/voice/world_city.mp3",
+  "assets/audio/voice/world_forest.mp3",
+  "assets/audio/voice/world_street.mp3",
+  "assets/audio/voice/zone_bottom_front.mp3",
+  "assets/audio/voice/zone_bottom_left.mp3",
+  "assets/audio/voice/zone_bottom_right.mp3",
+  "assets/audio/voice/zone_top_front.mp3",
+  "assets/audio/voice/zone_top_left.mp3",
+  "assets/audio/voice/zone_top_right.mp3",
+  "assets/img/buddy/cheer.svg",
+  "assets/img/buddy/ready.svg",
+  "assets/img/buddy/sleep.svg",
+  "assets/img/buddy/swish.svg",
+  "assets/img/buddy/wait.svg",
+  "assets/img/emoji/catalog.json",
+  "assets/img/emoji/city/donut.png",
+  "assets/img/emoji/city/donut.svg",
+  "assets/img/emoji/city/hotdog.png",
+  "assets/img/emoji/city/hotdog.svg",
+  "assets/img/emoji/city/pigeon.png",
+  "assets/img/emoji/city/pigeon.svg",
+  "assets/img/emoji/city/pizza.png",
+  "assets/img/emoji/city/pizza.svg",
+  "assets/img/emoji/city/pretzel.png",
+  "assets/img/emoji/city/pretzel.svg",
+  "assets/img/emoji/city/skyscraper.png",
+  "assets/img/emoji/city/skyscraper.svg",
+  "assets/img/emoji/city/taxi.png",
+  "assets/img/emoji/city/taxi.svg",
+  "assets/img/emoji/city/trafficlight.png",
+  "assets/img/emoji/city/trafficlight.svg",
+  "assets/img/emoji/forest/acorn.png",
+  "assets/img/emoji/forest/acorn.svg",
+  "assets/img/emoji/forest/campfire.png",
+  "assets/img/emoji/forest/campfire.svg",
+  "assets/img/emoji/forest/hedgehog.png",
+  "assets/img/emoji/forest/hedgehog.svg",
+  "assets/img/emoji/forest/leaf.png",
+  "assets/img/emoji/forest/leaf.svg",
+  "assets/img/emoji/forest/mushroom.png",
+  "assets/img/emoji/forest/mushroom.svg",
+  "assets/img/emoji/forest/owl.png",
+  "assets/img/emoji/forest/owl.svg",
+  "assets/img/emoji/forest/pinecone.png",
+  "assets/img/emoji/forest/pinecone.svg",
+  "assets/img/emoji/forest/snail.png",
+  "assets/img/emoji/forest/snail.svg",
+  "assets/img/emoji/street/balloon.png",
+  "assets/img/emoji/street/balloon.svg",
+  "assets/img/emoji/street/bus.png",
+  "assets/img/emoji/street/bus.svg",
+  "assets/img/emoji/street/cone.png",
+  "assets/img/emoji/street/cone.svg",
+  "assets/img/emoji/street/hydrant.png",
+  "assets/img/emoji/street/hydrant.svg",
+  "assets/img/emoji/street/icepop.png",
+  "assets/img/emoji/street/icepop.svg",
+  "assets/img/emoji/street/mailbox.png",
+  "assets/img/emoji/street/mailbox.svg",
+  "assets/img/emoji/street/skateboard.png",
+  "assets/img/emoji/street/skateboard.svg",
+  "assets/img/emoji/street/sneaker.png",
+  "assets/img/emoji/street/sneaker.svg",
+  "assets/img/goblins/a.svg",
+  "assets/img/goblins/a_sleep.svg",
+  "assets/img/goblins/b.svg",
+  "assets/img/goblins/b_sleep.svg",
+  "assets/img/goblins/big.svg",
+  "assets/img/goblins/big_dizzy.svg",
+  "assets/img/goblins/big_hurt.svg",
+  "assets/img/goblins/big_sleep.svg",
+  "assets/img/goblins/c.svg",
+  "assets/img/goblins/c_sleep.svg",
+  "assets/img/goblins/sneaky.svg",
+  "assets/img/goblins/sneaky_sleep.svg",
+  "assets/img/guide/bottom_front.svg",
+  "assets/img/guide/bottom_left.svg",
+  "assets/img/guide/bottom_right.svg",
+  "assets/img/guide/gap_bottom_left.svg",
+  "assets/img/guide/gap_bottom_mid.svg",
+  "assets/img/guide/gap_bottom_right.svg",
+  "assets/img/guide/gap_top_left.svg",
+  "assets/img/guide/gap_top_mid.svg",
+  "assets/img/guide/gap_top_right.svg",
+  "assets/img/guide/layout.json",
+  "assets/img/guide/mouth.svg",
+  "assets/img/guide/top_front.svg",
+  "assets/img/guide/top_left.svg",
+  "assets/img/guide/top_right.svg",
+  "assets/img/icons/app-180.png",
+  "assets/img/icons/app-192.png",
+  "assets/img/icons/app-512.png",
+  "assets/img/icons/app.svg",
+  "assets/img/icons/book.svg",
+  "assets/img/icons/brush.svg",
+  "assets/img/icons/calendar.svg",
+  "assets/img/icons/camera.svg",
+  "assets/img/icons/cup.svg",
+  "assets/img/icons/face_outline.svg",
+  "assets/img/icons/floss.svg",
+  "assets/img/icons/gear.svg",
+  "assets/img/icons/gift.svg",
+  "assets/img/icons/home.svg",
+  "assets/img/icons/moon.svg",
+  "assets/img/icons/mystery.svg",
+  "assets/img/icons/pick.svg",
+  "assets/img/icons/play.svg",
+  "assets/img/icons/pop.svg",
+  "assets/img/icons/rays.svg",
+  "assets/img/icons/sink.svg",
+  "assets/img/icons/sparkle.svg",
+  "assets/img/icons/star.svg",
+  "assets/img/icons/star_small.svg",
+  "assets/img/icons/swish.svg",
+  "assets/img/icons/tooth_sticker.svg",
+  "assets/img/icons/wave.svg",
+  "assets/img/icons/zzz.svg",
+  "assets/img/worlds/city.svg",
+  "assets/img/worlds/city_night.svg",
+  "assets/img/worlds/forest.svg",
+  "assets/img/worlds/forest_night.svg",
+  "assets/img/worlds/home.svg",
+  "assets/img/worlds/street.svg",
+  "assets/img/worlds/street_night.svg",
+  "css/app.css",
+  "index.html",
+  "js/assets.js",
+  "js/audio.js",
+  "js/books.js",
+  "js/dom.js",
+  "js/game.js",
+  "js/guide.js",
+  "js/main.js",
+  "js/photo.js",
+  "js/settings.js",
+  "js/store.js",
+  "js/tracker.js",
+  "js/wake.js",
+  "manifest.webmanifest",
+  "vendor/mediapipe/vision_bundle.mjs",
+  "vendor/mediapipe/wasm/vision_wasm_internal.js",
+  "vendor/mediapipe/wasm/vision_wasm_internal.wasm",
+  "vendor/mediapipe/wasm/vision_wasm_nosimd_internal.js",
+  "vendor/mediapipe/wasm/vision_wasm_nosimd_internal.wasm",
+  "vendor/models/blaze_face_short_range.tflite"
+  ];
+
+const CACHE = `gum-goblins-${VERSION}`;
+
+self.addEventListener('install', event => {
+  event.waitUntil(caches.open(CACHE).then(c => c.addAll(['./', ...FILES])).then(() => self.skipWaiting()));
+});
+
+self.addEventListener('activate', event => {
+  event.waitUntil(caches.keys()
+    .then(keys => Promise.all(keys.filter(k => k.startsWith('gum-goblins-') && k !== CACHE).map(k => caches.delete(k))))
+    .then(() => self.clients.claim()));
+});
+
+// Safari asks for media files in byte ranges; answer those from the cache too.
+async function rangeResponse(req) {
+  const hit = await caches.match(req.url);
+  if (!hit) return fetch(req);
+  const buf = await hit.arrayBuffer();
+  const m = /bytes=(\d*)-(\d*)/.exec(req.headers.get('range') || '');
+  const start = m && m[1] ? +m[1] : 0;
+  const end = m && m[2] ? Math.min(+m[2], buf.byteLength - 1) : buf.byteLength - 1;
+  return new Response(buf.slice(start, end + 1), {
+    status: 206,
+    headers: {
+      'Content-Type': hit.headers.get('Content-Type') || 'application/octet-stream',
+      'Content-Range': `bytes ${start}-${end}/${buf.byteLength}`,
+      'Content-Length': String(end - start + 1),
+      'Accept-Ranges': 'bytes',
+    },
+  });
+}
+
+self.addEventListener('fetch', event => {
+  const req = event.request;
+  if (req.method !== 'GET' || new URL(req.url).origin !== location.origin) return;
+  if (req.headers.has('range')) { event.respondWith(rangeResponse(req)); return; }
+  event.respondWith(
+    caches.match(req, { ignoreSearch: req.mode === 'navigate' }).then(hit => hit || fetch(req).then(res => {
+      if (res.ok && res.type === 'basic') {
+        const copy = res.clone();
+        caches.open(CACHE).then(c => c.put(req, copy));
+      }
+      return res;
+    }).catch(() => (req.mode === 'navigate' ? caches.match('./') : Response.error()))));
+});

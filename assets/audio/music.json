@@ -1,0 +1,17 @@
+{
+ "loopStart": 1.0,
+ "music": {
+  "music_adventure": {
+   "loop": 16.271186440677965
+  },
+  "music_boss": {
+   "loop": 15.0
+  },
+  "music_calm": {
+   "loop": 21.818181818181817
+  },
+  "music_lullaby": {
+   "loop": 20.0
+  }
+ }
+}
