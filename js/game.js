@@ -11,6 +11,7 @@ import { Guide } from './guide.js';
 import { heroEl, setPose } from './hero.js';
 import { photoEditor } from './photo.js';
 import { showCollection, showCalendar } from './books.js';
+import { takeNewUnlocks } from './unlocks.js';
 
 const NIGHT_STEPS = [['brush', 'Brush'], ['pick', 'Get your floss pick'], ['floss', 'Floss'], ['gift', 'Prize'], ['moon', 'Goodnight']];
 const MORNING_STEPS = [['brush', 'Brush'], ['sun_sticker', 'Sun sticker']];
@@ -21,7 +22,12 @@ const ZONE_ANGLES = {
   top_left: [200, 226, 252], top_front: [244, 270, 296], top_right: [288, 314, 340],
   bottom_right: [10, 34, 58], bottom_front: [64, 90, 116], bottom_left: [122, 146, 170],
 };
-const SHOT_MS = 320;      // hero fires a bolt this often while he is brushing
+const MIN_SHOT_MS = 1000;  // fastest the hero fires (fast brushing)
+const MAX_SHOT_MS = 4000;  // slowest the hero fires (slow brushing)
+const SPAWN_MS = 3000;     // a new goblin arrives this often
+const MAX_GOBLINS = 10;
+const RING = [210, 240, 270, 300, 330, 20, 50, 130, 160];
+const OUTER = [225, 270, 315, 30, 150];
 const GOLD_WEIGHT = 0.35; // sparkly emoji are rarer than regular ones
 
 class Abort extends Error {}
@@ -135,7 +141,7 @@ export class Game {
   }
 
   // The hero swings its brush and a toothpaste bolt flies at the target.
-  shoot(target, onHit) {
+  shoot(target, onHit, duration = 260) {
     if (!target?.isConnected) return;
     const from = this.centerOf(this.hero, 0.86, 0.3);
     const to = this.centerOf(target, 0.5, 0.5);
@@ -149,7 +155,7 @@ export class Game {
     const anim = bolt.animate([
       { transform: 'translate(-50%, -50%) scale(.5)' },
       { transform: `translate(calc(-50% + ${to.x - from.x}px), calc(-50% + ${to.y - from.y}px)) scale(1.1)` },
-    ], { duration: 260, easing: 'ease-in' });
+    ], { duration, easing: 'ease-in' });
     anim.onfinish = () => {
       bolt.remove();
       if (!target.isConnected) return;
@@ -299,6 +305,7 @@ export class Game {
       h('p', { class: 'big-text' }, 'Good morning!'),
       h('div', { class: 'reveal' }, img(ART.icon('sun_sticker'))),
       heroEl('cheer', store.hero, 'hero-small'),
+      this.unlockCard(),
       h('div', { class: 'row' },
         h('button', { class: 'btn small blue', onclick: () => { audio.fx('tap'); showCalendar(); } }, img(ART.icon('calendar')), 'Calendar')),
       done));
@@ -320,51 +327,57 @@ export class Game {
     this.show(h('div', {}, guide.el));
     guide.show(ZONES[0], 0);
     this.banner(catalog.worlds.find(w => w.id === world).name + '!');
-    await this.sleep(1200);
+    await this.sleep(1400);
+    await this.countdown(5);
 
     if (this.tracker.status().noCamera && s.camera) toast('Camera not available — timers run on their own.');
 
+    this.horde = [];
     let clock = 0, moving = 0, skipping = false, photo = null, big = null;
     for (let i = 0; i < ZONES.length; i++) {
       const z = ZONES[i];
       const final = i === ZONES.length - 1;
       guide.show(z, i);
-      let goblins = [];
       if (!final) {
-        goblins = this.spawnGoblins(z, i);
+        while (this.alive().length < 3) this.spawnGoblin(z);
       } else {
         audio.playMusic('music_boss', 0.8);
         big = this.spawnBig();
         this.banner(store.bigEscaped ? 'He’s back!' : 'Big Goblin!');
       }
-      let lastShot = 0, lastHit = 0;
+      let lastShot = performance.now(), lastHit = 0, spawnClock = 0, lastNow = performance.now();
       const res = skipping ? { clock: zoneDur, moving: zoneDur, skipped: true } : await this.track(zoneDur, (p, st) => {
+        const dt = st.now - lastNow;
+        lastNow = st.now;
         guide.setProgress(p);
         guide.setActive(st.active);
         this.hero.classList.toggle('idle', !st.active);
-        const firing = st.active && st.now - lastShot > SHOT_MS / this.speed;
-        if (!final) {
-          goblins.forEach((g, k) => { if (!g.popped && p >= ((k + 1) / goblins.length) * 0.9) this.popGoblin(g); });
-          const target = goblins.find(g => !g.popped);
-          if (firing && target) { lastShot = st.now; this.shoot(target.el); }
-        } else {
-          big.hp.style.transform = `scaleX(${1 - p})`;
-          if (firing) {
-            lastShot = st.now;
+        // New goblins keep arriving; brushing too slowly lets them pile up.
+        if (!this.paused && !this.settingsOpen) {
+          spawnClock += dt * this.speed;
+          if (spawnClock >= SPAWN_MS) { spawnClock = 0; if (this.alive().length < MAX_GOBLINS) this.spawnGoblin(z); }
+        }
+        if (final) big.hp.style.transform = `scaleX(${1 - p})`;
+        if (st.active && this.readyToShoot(st, lastShot)) {
+          lastShot = st.now;
+          const target = this.alive()[0];
+          if (target) {
+            target.targeted = true;
+            this.shoot(target.el, () => this.popGoblin(target));
+          } else if (final) {
             this.shoot(big.body, () => {
-              if (p - lastHit >= 0.1) { lastHit = p; big.el.classList.add('hurt'); setTimeout(() => big.el.classList.remove('hurt'), 350); }
+              if (p - lastHit >= 0.05) { lastHit = p; big.el.classList.add('hurt'); setTimeout(() => big.el.classList.remove('hurt'), 350); }
             });
           }
-          if (!photo && p > 0.35 && st.faceNow) {
-            photo = this.tracker.snapshot();
-            if (photo) { const f = $('#flash'); f.classList.remove('go'); void f.offsetWidth; f.classList.add('go'); }
-          }
+        }
+        if (final && !photo && p > 0.35 && st.faceNow) {
+          photo = this.tracker.snapshot();
+          if (photo) { const f = $('#flash'); f.classList.remove('go'); void f.offsetWidth; f.classList.add('go'); }
         }
       });
       if (res.skipped) skipping = true;
       clock += res.clock;
       moving += res.moving;
-      goblins.forEach(g => { if (!g.popped) this.popGoblin(g); });
       if (!final) audio.fx('chime');
     }
     guide.finish();
@@ -376,6 +389,7 @@ export class Game {
     big.hp.parentElement.remove();
     if (passed) {
       audio.stopMusic(0.8);
+      this.alive().forEach((g, k) => setTimeout(() => this.popGoblin(g), k * 120));
       big.body.querySelector('img').src = ART.goblin('big_dizzy');
       big.el.classList.add('beaten');
       audio.fx('defeat');
@@ -389,6 +403,7 @@ export class Game {
       store.bigEscaped = false;
     } else {
       audio.stopMusic(2);
+      this.alive().forEach(g => { g.popped = true; g.el.classList.remove('enter'); g.el.classList.add('flee'); });
       big.el.classList.add('escape');
       big.el.append(h('div', { class: 'bubble' }, 'I\'ll be back tomorrow!'));
       audio.fx('whoosh');
@@ -400,18 +415,50 @@ export class Game {
     return { passed, score, photo, world };
   }
 
-  spawnGoblins(zone, zoneIndex) {
-    return ZONE_ANGLES[zone].map((deg, k) => {
-      const type = SMALL_GOBLINS[(zoneIndex + k) % SMALL_GOBLINS.length];
-      const el = h('div', { class: 'sprite goblin enter', style: { animationDelay: `${k * 0.2}s` } }, img(ART.goblin(type)));
-      el.querySelector('img').style.animationDelay = `${-k * 0.4}s`;
-      this.stage.append(el);
-      this.placeAround(el, deg, 1.0, el.offsetWidth / 2 || 50);
-      return { el, popped: false };
-    });
+  // 5-4-3-2-1 before brushing starts.
+  async countdown(n) {
+    for (let k = n; k > 0; k--) {
+      const c = h('div', { class: 'countdown' }, k);
+      $('#app').append(c);
+      audio.fx('tap', { rate: 0.8 });
+      await this.sleep(1000).finally(() => c.remove());
+    }
+    this.banner('Go!', 900);
+    audio.fx('chime');
+  }
+
+  // Bolts follow his brushing: about one a second when he brushes fast, up to
+  // one every four seconds when slow, timed to land on a brush stroke.
+  readyToShoot(st, lastShot) {
+    const rate = Math.max(0.01, st.strokeRate || 0);
+    const interval = Math.min(MAX_SHOT_MS, Math.max(MIN_SHOT_MS, 4000 / rate)) / this.speed;
+    const since = st.now - lastShot;
+    if (since < interval) return false;
+    const freshStroke = st.lastStroke && st.now - st.lastStroke < 200 && st.lastStroke > lastShot;
+    return freshStroke || since > interval + 600 / this.speed;
+  }
+
+  alive() { return this.horde.filter(g => !g.popped && !g.targeted); }
+
+  spawnGoblin(zone) {
+    const taken = this.horde.filter(g => !g.popped).map(g => g.slot);
+    const preferred = ZONE_ANGLES[zone];
+    // Fill the current zone's spots first, then the rest of the ring, then an outer ring.
+    const slot = [...preferred.map(a => [a, 1]), ...RING.map(a => [a, 1]), ...OUTER.map(a => [a, 1.45])]
+      .find(([a, r]) => !taken.some(t => t[0] === a && t[1] === r)) || [Math.random() * 360, 1.6];
+    const type = SMALL_GOBLINS[this.horde.length % SMALL_GOBLINS.length];
+    const el = h('div', { class: 'sprite goblin enter' }, img(ART.goblin(type)));
+    el.querySelector('img').style.animationDelay = `${-Math.random()}s`;
+    this.stage.append(el);
+    this.placeAround(el, slot[0], slot[1], el.offsetWidth / 2 || 50);
+    const g = { el, slot, popped: false, targeted: false };
+    this.horde.push(g);
+    if (this.horde.length > 3) audio.fx('giggle', { gain: 0.4, rate: 1.2 });
+    return g;
   }
 
   popGoblin(g) {
+    if (g.popped) return;
     g.popped = true;
     g.el.classList.add('pop');
     audio.fx('pop', { rate: 0.9 + Math.random() * 0.3 });
@@ -422,9 +469,11 @@ export class Game {
     const hp = h('i');
     const body = h('div', { class: 'body' }, img(ART.goblin('big')), img(ART.goblin('big_hurt')));
     const el = h('div', { class: 'big enter' }, h('div', { class: 'bar hp' }, hp), body);
-    const c = this.centerOf(this.hero);
-    el.style.top = `${Math.max(90, c.y - c.h * 0.5 - this.appRect().height * 0.3)}px`;
     this.stage.append(el);
+    // Stand just above the hero, clear of the step strip.
+    const c = this.centerOf(this.hero);
+    const height = el.offsetWidth + 26; // square art plus the health bar; images may not be laid out yet
+    el.style.top = `${Math.max(76, c.y - c.h * 0.5 - height + 20)}px`;
     audio.fx('giggle', { rate: 0.7 });
     return { el, body, hp };
   }
@@ -454,8 +503,8 @@ export class Game {
     this.stage.replaceChildren(this.hero);
     this.show(h('div', {}, guide.el));
     guide.show(gaps[0], 0);
-    this.banner('Floss time!', 1200);
-    await this.sleep(900);
+    this.banner('Floss time!', 1000);
+    await this.sleep(600);
     let skipping = false;
     for (let i = 0; i < gaps.length; i++) {
       const gap = gaps[i];
@@ -476,19 +525,31 @@ export class Game {
         el.classList.add('run', x > this.centerOf(this.hero).x ? 'right' : 'left');
         audio.fx('whoosh', { gain: 0.5 });
         audio.fx('chime', { gain: 0.6 });
-        setTimeout(() => el.remove(), 1500);
+        setTimeout(() => el.remove(), 800);
       };
       if (skipping) runAway();
-      else { this.shoot(el, runAway); await this.sleep(300); }
+      else { this.shoot(el, runAway, 130); await this.sleep(150); }
     }
     guide.finish();
     setPose(this.hero, 'cheer');
-    this.banner('Great flossing!', 1400);
-    await this.sleep(1400);
+    this.banner('Great flossing!', 1200);
+    await this.sleep(1200);
     this.stage.replaceChildren();
   }
 
   // ------------------------------------------------------------ reward
+
+  // A card showing any hero items he just earned, or nothing.
+  unlockCard() {
+    const fresh = takeNewUnlocks();
+    if (!fresh.length) return null;
+    audio.fx('sparkle');
+    return h('div', { class: 'unlock-card card' },
+      h('div', { class: 'unlock-title' }, fresh.length > 1 ? 'New hero items!' : 'New hero item!'),
+      h('div', { class: 'unlock-items' }, fresh.map(({ part, value }) =>
+        heroEl('cheer', { ...store.hero, [part]: value }, 'unlock-hero'))),
+      h('div', { class: 'unlock-sub' }, 'Tap your hero on the home screen to try it on.'));
+  }
 
   pickEmoji(world) {
     const owned = store.collection;
@@ -544,6 +605,8 @@ export class Game {
         h('div', { class: 'reveal' }, img(ART.goblin('big'))),
         h('div', { class: 'emoji-name' }, 'Beat the big goblin tomorrow!'));
     }
+    const card = this.unlockCard();
+    if (card) col.append(card);
     col.append(h('div', { class: 'row' },
       h('button', { class: 'btn small blue', onclick: () => { audio.fx('tap'); showCollection(emoji?.id); } }, img(ART.icon('book')), 'Collection'),
       h('button', { class: 'btn small blue', onclick: () => { audio.fx('tap'); showCalendar(); } }, img(ART.icon('calendar')), 'Calendar')),

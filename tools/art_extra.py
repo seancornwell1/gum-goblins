@@ -630,6 +630,11 @@ def extra_icons():
                             f'<circle cx="100" cy="100" r="84" fill="#fff6d6" stroke="#f2c84b" stroke-width="6" stroke-dasharray="14 10"/>'
                             f'<path d="M76 78 Q76 50 102 50 Q128 50 128 76 Q128 94 106 102 L104 118" fill="none" stroke="#f2c84b" stroke-width="14" stroke-linecap="round"/>'
                             f'<circle cx="104" cy="146" r="9" fill="#f2c84b"/>' + sparkle_shape(160, 40, 12, "#ffd23f")),
+        "lock": svg(100, 100,
+                    f'<path d="M30 46 L30 32 Q30 12 50 12 Q70 12 70 32 L70 46" fill="none" {S(14)}/>'
+                    f'<path d="M30 46 L30 32 Q30 12 50 12 Q70 12 70 32 L70 46" fill="none" stroke="#c9c6d8" stroke-width="6"/>'
+                    f'<rect x="20" y="44" width="60" height="46" rx="10" fill="#ffd23f" {S(6)}/><circle cx="50" cy="64" r="7" fill="{OL}"/>'
+                    f'<rect x="47" y="64" width="6" height="14" rx="3" fill="{OL}"/>'),
         "plus": svg(100, 100, f'<circle cx="50" cy="50" r="44" fill="#5cd67a" {S(6)}/><path d="M50 28 L50 72 M28 50 L72 50" stroke="#fff" stroke-width="12" stroke-linecap="round"/>'),
     }
 

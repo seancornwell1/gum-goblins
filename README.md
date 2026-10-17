@@ -48,10 +48,24 @@ reward → goodnight. The picture strip at the top lights up the current step.
 **Morning brush** (the smaller button): brushing only, then a sun sticker on the
 calendar. No flossing, and no emoji (those stay the nightly prize).
 
-**His hero:** a tooth hero he dresses up from the home screen (tap it). There
-are 6 capes, 6 hats (or none) and 5 brush colours. The hero stands in the middle
-of the screen and fires toothpaste bolts at the goblins while he brushes. When
-he stops brushing, it stops firing.
+**His hero:** a tooth hero he dresses up from the home screen (tap it). It
+stands in the middle of the screen and fires toothpaste bolts at the goblins in
+time with his brushing. The camera counts brush strokes (the moving area at his
+mouth changing direction): fast brushing fires one bolt a second, and slower
+brushing stretches that to about four seconds. Each bolt pops a goblin. New
+goblins arrive every 3 seconds, so if he brushes too slowly they pile up (up to
+10). When he stops brushing, the hero stops firing.
+
+**Earning hero items:** he starts with blue or red capes, no hat or a cap, and a
+pink brush. Each morning brush unlocks the next item: blue brush, green cape,
+bunny ears, green brush, pink cape, purple brush. The rest come from
+achievements: beat the big goblin (crown), 5 nights (purple cape), 3 nights in
+a row (headband), 10 emoji (wizard hat), a sparkly emoji (yellow brush), 25
+emoji (pirate hat), 7 nights in a row (orange cape). Locked items show a
+padlock, and tapping one says how to earn it. New items are announced on the
+reward screen.
+
+Brushing starts with a 5-4-3-2-1 countdown.
 
 There's no narration, just a few short words on screen ("Big Goblin!", "Floss
 time!") and the zone name in the guide.
@@ -61,7 +75,8 @@ time!") and the zone name in the guide.
   the zone, with a fill bar and the zone name. A zone's timer
   only runs while his face is in view and there's movement at his mouth (brief
   pauses up to 2 s are allowed). Small goblins gather around the hero and pop as
-  each zone fills. The big goblin takes the last zone, to faster battle music.
+  the hero zaps them. The big goblin takes the last zone, to a horns-and-snares
+  battle march.
 - **Score:** the share of brushing time that had real movement. At or above the
   pass mark, the big goblin is beaten. Below it, he waddles off saying "I'll be
   back tomorrow!", there's no emoji that night, and he comes back the next night.

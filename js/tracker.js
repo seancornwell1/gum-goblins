@@ -10,6 +10,7 @@ const BRUSH_GRACE_MS = 2000;   // timer keeps running through short pauses in mo
 const MOVING_NOW_MS = 500;     // counts toward the score only while actually moving
 const THRESHOLDS = { low: 0.07, medium: 0.04, high: 0.02 };
 const W = 96, H = 72;          // motion analysis resolution
+const STROKE_WINDOW_MS = 2000; // stroke rate is measured over this window
 
 export class Tracker {
   constructor(video) {
@@ -32,6 +33,10 @@ export class Tracker {
     this.cx = this.canvas.getContext('2d', { willReadFrequently: true });
     this.prev = null;
     this.sim = null;
+    this.strokes = [];
+    this.lastStroke = 0;
+    this.centroid = null;
+    this.vel = null;
   }
 
   // Called from the tap that starts a routine, so the camera prompt is allowed.
@@ -136,18 +141,42 @@ export class Tracker {
     if (this.prev) {
       const x0 = Math.max(0, Math.floor(this.roi.x * W)), x1 = Math.min(W, Math.ceil((this.roi.x + this.roi.w) * W));
       const y0 = Math.max(0, Math.floor(this.roi.y * H)), y1 = Math.min(H, Math.ceil((this.roi.y + this.roi.h) * H));
-      let changed = 0, total = 0;
+      let changed = 0, total = 0, sx = 0, sy = 0;
       for (let y = y0; y < y1; y++) {
         for (let x = x0; x < x1; x++) {
           const i = y * W + x;
-          if (Math.abs(gray[i] - this.prev[i]) > 22) changed++;
+          if (Math.abs(gray[i] - this.prev[i]) > 22) { changed++; sx += x; sy += y; }
           total++;
         }
       }
       this.motion = total ? changed / total : 0;
-      if (this.motion > (THRESHOLDS[this.sensitivity] ?? THRESHOLDS.medium)) this.lastMotion = now;
+      if (this.motion > (THRESHOLDS[this.sensitivity] ?? THRESHOLDS.medium)) {
+        this.lastMotion = now;
+        this.countStroke(now, sx / changed, sy / changed);
+      } else {
+        this.centroid = null;
+      }
     }
     this.prev = gray;
+  }
+
+  // A brush stroke is the moving area at his mouth changing direction. The
+  // stroke rate tells the game how fast he's brushing.
+  countStroke(now, x, y) {
+    if (this.centroid) {
+      const vx = x - this.centroid.x, vy = y - this.centroid.y;
+      if (this.vel && Math.hypot(vx, vy) > 0.6 && vx * this.vel.x + vy * this.vel.y < 0) {
+        this.strokes.push(now);
+        this.lastStroke = now;
+      }
+      if (Math.hypot(vx, vy) > 0.6) this.vel = { x: vx, y: vy };
+    }
+    this.centroid = { x, y };
+    while (this.strokes.length && now - this.strokes[0] > STROKE_WINDOW_MS) this.strokes.shift();
+  }
+
+  strokeRate(now) {
+    return this.strokes.filter(t => now - t < STROKE_WINDOW_MS).length / (STROKE_WINDOW_MS / 1000);
   }
 
   // Snapshot of what the game needs this frame.
@@ -155,15 +184,20 @@ export class Tracker {
     if (this.sim) {
       const on = this.sim.inView && this.sim.moving;
       // sim.lazy: moving only now and then, to test the big goblin escaping.
-      return { inView: this.sim.inView, faceNow: this.sim.inView, brushing: on, movingNow: on && (!this.sim.lazy || Math.random() < 0.15) };
+      const rate = on ? (this.sim.lazy ? 0.6 : 3) : 0;
+      const lastStroke = rate ? Math.floor(now / (1000 / rate)) * (1000 / rate) : 0;
+      return { inView: this.sim.inView, faceNow: this.sim.inView, brushing: on, movingNow: on && (!this.sim.lazy || Math.random() < 0.15), strokeRate: rate, lastStroke };
     }
-    if (this.starting) return { inView: false, starting: true, brushing: false, movingNow: false, faceNow: false };
-    if (!this.available) return { inView: true, brushing: true, movingNow: true, faceNow: false, noCamera: true };
+    if (this.starting) return { inView: false, starting: true, brushing: false, movingNow: false, faceNow: false, strokeRate: 0, lastStroke: 0 };
+    // Without a camera, pretend to a steady brushing pace.
+    if (!this.available) return { inView: true, brushing: true, movingNow: true, faceNow: false, noCamera: true, strokeRate: 2.5, lastStroke: Math.floor(now / 400) * 400 };
     return {
       inView: this.inView,
       faceNow: this.faceNow,
       brushing: this.inView && now - this.lastMotion < BRUSH_GRACE_MS,
       movingNow: this.inView && now - this.lastMotion < MOVING_NOW_MS,
+      strokeRate: this.inView ? this.strokeRate(now) : 0,
+      lastStroke: this.lastStroke,
     };
   }
 

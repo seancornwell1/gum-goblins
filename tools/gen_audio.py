@@ -163,6 +163,15 @@ def inst_crash(f, dur, vel):
     return x * np.exp(-t * 2.5) * vel
 
 
+def inst_cymbal(f, dur, vel):
+    n = int(0.5 * SR)
+    t = np.arange(n) / SR
+    rng = np.random.default_rng(23)
+    x = rng.uniform(-1, 1, n)
+    x = x - lp_np(x, 6000)
+    return x * np.exp(-t * 9) * vel
+
+
 def inst_tom(f, dur, vel):
     n = int(0.5 * SR)
     t = np.arange(n) / SR
@@ -179,7 +188,7 @@ def lp_np(x, cutoff):
     return np.fft.irfft(X * H, len(x))
 
 
-INSTR = {"crash": inst_crash, "brass": lambda f, d, v: inst_brass(f, d, v), "pluck": inst_pluck, "lead": inst_lead, "bass": inst_bass, "pad": inst_pad,
+INSTR = {"cymbal": inst_cymbal, "crash": inst_crash, "brass": lambda f, d, v: inst_brass(f, d, v), "pluck": inst_pluck, "lead": inst_lead, "bass": inst_bass, "pad": inst_pad,
          "marimba": inst_marimba, "musicbox": inst_musicbox, "kick": inst_kick,
          "snare": inst_snare, "shaker": inst_shaker, "tom": inst_tom}
 
@@ -250,42 +259,59 @@ def song_adventure():
     return bpm, 32, ev
 
 
+BB_MAJOR = [10, 0, 2, 3, 5, 7, 9]  # pitch classes of B-flat major
+
+
+def third_below(note, scale=BB_MAJOR):
+    """The note two scale steps down, for horn harmony."""
+    m = midi(note)
+    for d in range(1, 6):
+        cand = m - d
+        if cand % 12 in scale:
+            steps = sum(1 for k in range(cand, m) if k % 12 in scale)
+            if steps == 2:
+                return cand
+    return m - 3
+
+
 def song_boss():
-    """Big-goblin battle: fast, heroic and bright, building to a climax."""
-    bpm, ev = 152, []
-    # D major hero theme with a lift in the second half.
-    chords = [("B2", "m"), ("G2", ""), ("D3", ""), ("A2", ""), ("B2", "m"), ("G2", ""), ("A2", ""), ("A2", ""),
-              ("G2", ""), ("A2", ""), ("F#2", "m"), ("B2", "m"), ("G2", ""), ("A2", ""), ("D3", ""), ("A2", "")]
+    """Big-goblin battle: a bright, lively march with horns and snares."""
+    bpm, ev = 126, []
+    chords = [("Bb2", ""), ("F2", ""), ("G2", "m"), ("Eb2", ""), ("Bb2", ""), ("F2", ""), ("Eb2", ""), ("F2", ""),
+              ("G2", "m"), ("Eb2", ""), ("Bb2", ""), ("F2", ""), ("Eb2", ""), ("F2", ""), ("Bb2", ""), ("Bb2", "")]
+    snare_cells = [[1, 0, .6, .7], [1, 0, .6, 0], [1, 0, .6, .7], [.7, .6, .8, .9]]
     for bar, (root, kind) in enumerate(chords):
         b0 = bar * 4
         r = midi(root)
-        for k in range(8):  # galloping octave bass
-            ev.append((b0 + k * 0.5, 0.35, r + (12 if k % 2 else 0), 0.4, "bass"))
-        for k in range(16):  # sixteenth-note string ostinato
-            n = chord_notes(r + 24, kind)[[0, 1, 2, 1][k % 4]]
-            ev.append((b0 + k * 0.25, 0.2, n, 0.06 + (0.03 if k % 4 == 0 else 0), "pluck"))
-        for n in chord_notes(r + 12, kind):  # brass stabs
-            ev.append((b0, 0.6, n, 0.12, "brass"))
-            ev.append((b0 + 2.5, 0.4, n, 0.09, "brass"))
-        ev.append((b0, 4, r + 24, 0.05, "pad"))
-        ev += [(b0 + k, 0.2, None, 0.5, "kick") for k in range(4)]
-        ev += [(b0 + 1, 0.2, None, 0.3, "snare"), (b0 + 3, 0.2, None, 0.3, "snare")]
-        ev += [(b0 + k * 0.5 + 0.25, 0.1, None, 0.07, "shaker") for k in range(8)]
+        # oom-pah: tuba on 1 and 3, horn chords on 2 and 4
+        ev.append((b0, 0.8, r - 12, 0.5, "bass"))
+        ev.append((b0 + 2, 0.8, r - 5, 0.45, "bass"))
+        for beat in (1, 3):
+            for n in chord_notes(r + 12, kind):
+                ev.append((b0 + beat, 0.35, n, 0.1, "brass"))
+        # marching snare: sixteenth figures, a full roll at the end of each phrase
+        roll = bar % 4 == 3
+        for beat in range(4):
+            for k, v in enumerate([.8, .55, .7, .85] if roll and beat >= 2 else snare_cells[beat]):
+                if v:
+                    ev.append((b0 + beat + k * 0.25, 0.1, None, 0.2 * v + (0.06 if k == 0 else 0), "snare"))
+        ev += [(b0, 0.2, None, 0.55, "kick"), (b0 + 2, 0.2, None, 0.5, "kick")]
+        ev += [(b0 + 1, 0.3, None, 0.1, "cymbal"), (b0 + 3, 0.3, None, 0.1, "cymbal")]
         if bar % 4 == 0:
-            ev.append((b0, 1, None, 0.22, "crash"))
-        if bar % 4 == 3:  # drum fill into the next phrase
-            ev += [(b0 + 3 + k * 0.25, 0.2, ["A2", "F2", "D2", "A1"][k], 0.32, "tom") for k in range(4)]
-    mel = [  # soaring brass melody
-        ["F#5", "-", "-", "D5", "B4", "-", "D5", "F#5"], ["G5", "-", "-", "-", "B5", "-", "A5", "G5"],
-        ["F#5", "-", "A5", "-", "D6", "-", "-", "-"], ["C#6", "-", "B5", "-", "A5", "-", "-", "-"],
-        ["F#5", "-", "-", "D5", "B4", "-", "D5", "F#5"], ["G5", "-", "-", "-", "B5", "-", "D6", "-"],
-        ["E6", "-", "-", "-", "C#6", "-", "A5", "-"], ["A5", "-", "B5", "-", "C#6", "-", "E6", "-"],
-        ["D6", "-", "-", "-", "B5", "-", "G5", "-"], ["C#6", "-", "-", "-", "A5", "-", "E5", "-"],
-        ["F#5", "-", "A5", "-", "C#6", "-", "F#6", "-"], ["F#6", "-", "-", "E6", "D6", "-", "B5", "-"],
-        ["G5", "-", "B5", "-", "D6", "-", "G6", "-"], ["E6", "-", "F#6", "-", "G6", "-", "E6", "-"],
-        ["F#6", "-", "-", "-", "D6", "-", "A5", "-"], ["A5", "-", "C#6", "-", "E6", "-", "A6", "-"]]
-    ev += melody(mel, 0.5, 0.2, "brass")
-    ev += melody(mel, 0.5, 0.08, "lead")
+            ev.append((b0, 1, None, 0.2, "crash"))
+    mel = [
+        ["D5", "-", "D5", "F5", "Bb5", "-", "F5", "D5"], ["C5", "-", "F5", "-", "A5", "-", "C6", "-"],
+        ["Bb5", "-", "A5", "G5", "D5", "-", "G5", "-"], ["G5", "-", "F5", "Eb5", "G5", "-", "Bb5", "-"],
+        ["D6", "-", "D6", "C6", "Bb5", "-", "F5", "-"], ["C6", "-", "A5", "F5", "C6", "-", "Eb6", "-"],
+        ["D6", "-", "C6", "Bb5", "G5", "-", "Bb5", "-"], ["A5", "-", "-", "-", "C6", "-", "-", "-"],
+        ["D6", "-", "D6", "Eb6", "D6", "-", "Bb5", "-"], ["G5", "-", "Bb5", "-", "Eb6", "-", "D6", "C6"],
+        ["D6", "-", "Bb5", "-", "F5", "-", "Bb5", "D6"], ["C6", "-", "-", "-", "A5", "-", "F5", "-"],
+        ["G5", "-", "Bb5", "-", "Eb6", "-", "G6", "-"], ["F6", "-", "Eb6", "-", "D6", "-", "C6", "-"],
+        ["Bb5", "-", "D6", "-", "F6", "-", "D6", "-"], ["Bb5", "-", "-", "-", "F5", "-", "Bb5", "-"]]
+    horns = melody(mel, 0.5, 0.22, "brass")
+    ev += [(b, d, midi(n) - 12, v, i) for b, d, n, v, i in horns]                 # horn melody
+    ev += [(b, d, third_below(n) - 12, v * 0.6, i) for b, d, n, v, i in horns]    # horn harmony
+    ev += [(b, d, n, 0.07, "lead") for b, d, n, v, i in horns]                    # piccolo on top
     return bpm, 64, ev
 
 

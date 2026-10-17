@@ -72,17 +72,20 @@ await page.waitForSelector('#go-brush');
 // ---- hero dress-up
 await page.click('#my-hero');
 await page.waitForTimeout(500);
-await page.click('[aria-label="hat crown"]');
+await page.click('[aria-label="hat pirate"]');   // locked: shows how to earn it
+await page.waitForSelector('text=Find 25 emoji to unlock this!');
+await page.click('[aria-label="hat cap"]');
 await page.click('[aria-label="cape red"]');
 await shot('09b-hero-editor');
 await page.click('#overlay .btn:has-text("Done")');
 const look = await page.evaluate(() => JSON.parse(localStorage.getItem('gumgoblins.v1')).hero);
-if (look.hat !== 'crown' || look.cape !== 'red') throw new Error('hero look not saved');
+if (look.hat !== 'cap' || look.cape !== 'red') throw new Error('hero look not saved');
 
 // ---- morning brush (no flossing)
 await page.click('#go-morning');
 await until(new Function('return ' + hasText('Good morning!')), 90000);
 await page.waitForTimeout(1200);
+if (!(await page.evaluate(new Function('return ' + hasText('New hero item!'))))) throw new Error('morning unlock not shown');
 await shot('09c-morning');
 const sun = await page.evaluate(() => Object.keys(JSON.parse(localStorage.getItem('gumgoblins.v1')).mornings).length);
 if (sun !== 1) throw new Error('morning sun not recorded');
@@ -121,6 +124,10 @@ await page.waitForSelector('#go-brush');
 // ---- brush with too little movement: big goblin escapes
 await page.evaluate(() => { window.__sim.lazy = true; });
 await page.click('#go-brush');
+await page.waitForTimeout(9000);
+const crowd = await page.evaluate(() => document.querySelectorAll('.goblin:not(.pop)').length);
+console.log('goblins on screen while brushing slowly:', crowd);
+await shot('15b-pileup');
 await until(new Function('return ' + hasText("I'll be back tomorrow")), 90000);
 await page.waitForTimeout(1200);
 await shot('16-escape');

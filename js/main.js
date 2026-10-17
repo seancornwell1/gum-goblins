@@ -9,6 +9,7 @@ import { Game } from './game.js';
 import { setupGear } from './settings.js';
 import { showCollection, showCalendar } from './books.js';
 import { heroEl } from './hero.js';
+import { unlocked, isUnlocked, lockHint, takeNewUnlocks } from './unlocks.js';
 
 const params = new URLSearchParams(location.search);
 const tracker = new Tracker($('#cam'));
@@ -72,19 +73,27 @@ function showHome() {
       h('button', { class: 'round-btn', 'aria-label': 'Calendar', onclick: tap(showCalendar) }, img(ART.icon('calendar'))))));
 }
 
-// Dress-up: a few capes, hats and brush colours to pick from.
+// Dress-up: capes, hats and brush colours. Locked ones show how to earn them.
 function showHeroEditor() {
   const ov = $('#overlay');
   const preview = h('div', { class: 'hero-preview' });
   const close = () => { ov.hidden = true; ov.replaceChildren(); showHome(); };
   const rows = h('div');
+  const hint = h('div', { class: 'lock-hint' });
   const render = () => {
+    const have = unlocked();
     preview.replaceChildren(heroEl('cheer'));
     const row = (title, part, options) => h('div', { class: 'hero-row' }, h('h3', {}, title),
-      h('div', { class: 'hero-options' }, options.map(opt => h('button', {
-        class: `hero-opt ${store.hero[part] === opt ? 'on' : ''}`, 'aria-label': `${part} ${opt}`,
-        onclick: () => { audio.fx('pop', { gain: 0.5 }); store.setHero(part, opt); render(); },
-      }, heroEl('ready', { ...store.hero, [part]: opt })))));
+      h('div', { class: 'hero-options' }, options.map(opt => {
+        const open = isUnlocked(part, opt, have);
+        return h('button', {
+          class: `hero-opt ${store.hero[part] === opt ? 'on' : ''} ${open ? '' : 'locked'}`, 'aria-label': `${part} ${opt}`,
+          onclick: () => {
+            if (!open) { audio.fx('tap'); hint.textContent = `🔒 ${lockHint(part, opt)} to unlock this!`; return; }
+            audio.fx('pop', { gain: 0.5 }); store.setHero(part, opt); hint.textContent = ''; render();
+          },
+        }, heroEl('ready', { ...store.hero, [part]: opt }), open ? null : img(ART.icon('lock'), 'lock'));
+      })));
     rows.replaceChildren(
       row('Cape', 'cape', heroParts.capes),
       row('Hat', 'hat', heroParts.hats),
@@ -93,7 +102,7 @@ function showHeroEditor() {
   render();
   ov.replaceChildren(h('div', { class: 'sheet' },
     h('button', { class: 'close', onclick: close, 'aria-label': 'Close' }, '×'),
-    h('h2', {}, 'My Hero'), preview, rows,
+    h('h2', {}, 'My Hero'), preview, hint, rows,
     h('div', { style: { textAlign: 'center', marginTop: '16px' } }, h('button', { class: 'btn', onclick: close }, 'Done'))));
   ov.hidden = false;
   ov.onclick = e => { if (e.target === ov) close(); };
@@ -101,6 +110,7 @@ function showHeroEditor() {
 
 async function boot() {
   await loadData();
+  takeNewUnlocks(); // first run: everything he starts with counts as already seen
   applyVolumes();
   applyTracking();
   setupGear({

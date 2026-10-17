@@ -6,7 +6,7 @@
 const MUSIC = ['music_adventure', 'music_boss', 'music_calm', 'music_lullaby'];
 const FX = ['zap', 'pop', 'chime', 'fanfare', 'sparkle', 'whoosh', 'wave', 'tap', 'hit', 'giggle', 'resume', 'pause', 'defeat'];
 // Per-track trims so every piece sits at a calm level next to the others.
-const MUSIC_TRIM = { music_adventure: 0.8, music_boss: 0.8, music_calm: 0.75, music_lullaby: 0.6 };
+const MUSIC_TRIM = { music_adventure: 0.8, music_boss: 0.95, music_calm: 0.75, music_lullaby: 0.6 };
 
 class AudioEngine {
   constructor() {

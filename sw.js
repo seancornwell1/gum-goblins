@@ -2,7 +2,7 @@
 // from the cache. Nothing is ever sent anywhere. tools/build_sw.py fills in
 // the file list and version.
 
-const VERSION = '5fe00fc1a50a';
+const VERSION = '6e8432afefc0';
 const FILES = [
   "assets/audio/fx_chime.mp3",
   "assets/audio/fx_defeat.mp3",
@@ -303,6 +303,7 @@ const FILES = [
   "assets/img/icons/gear.svg",
   "assets/img/icons/gift.svg",
   "assets/img/icons/home.svg",
+  "assets/img/icons/lock.svg",
   "assets/img/icons/moon.svg",
   "assets/img/icons/mystery.svg",
   "assets/img/icons/mystery_gold.svg",
@@ -351,6 +352,7 @@ const FILES = [
   "js/settings.js",
   "js/store.js",
   "js/tracker.js",
+  "js/unlocks.js",
   "js/wake.js",
   "manifest.webmanifest",
   "vendor/mediapipe/vision_bundle.mjs",

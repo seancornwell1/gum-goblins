@@ -324,7 +324,7 @@ body.frozen #stage *, body.frozen #stage *::after, body.frozen #screen * { anima
 .hero { position: relative; aspect-ratio: 300 / 320; }
 .hero img { position: absolute; inset: 0; width: 100%; height: 100%; }
 .hero.center {
-  position: absolute; left: 50%; top: 54%; width: min(46vw, 27vh, 260px); z-index: 3;
+  position: absolute; left: 50%; top: 54%; width: min(34vw, 20vh, 190px); z-index: 3;
   transform: translate(-50%, -50%); animation: hero-bob 2s ease-in-out infinite;
 }
 .hero.center.attack { animation: hero-lunge .2s ease-out; }
@@ -389,3 +389,29 @@ body.frozen #stage *, body.frozen #stage *::after, body.frozen #screen * { anima
 .slot.missing.gold { background: #fffbea; box-shadow: 0 0 0 3px #f5dd8a; }
 .reveal.gold::before { filter: hue-rotate(-20deg) saturate(2); }
 .day img.m { position: absolute; width: 42%; left: -4px; bottom: -4px; }
+
+/* Flossing runs at double speed. */
+.sneaky.enter { animation-duration: .35s; }
+.sneaky img { animation-duration: .6s; }
+.sneaky.run { animation-duration: .7s; }
+.guide .tool.pick { animation-duration: .35s; }
+/* Leftover goblins run off with the big goblin when he escapes. */
+.goblin.flee { animation: runoff-r 2.5s ease-in forwards; }
+.countdown {
+  position: absolute; z-index: 8; left: 50%; top: 22%; transform: translateX(-50%); pointer-events: none;
+  font-size: clamp(90px, 30vw, 160px); font-weight: 900; color: #fff; -webkit-text-stroke: 4px var(--ink); paint-order: stroke fill;
+  text-shadow: 0 8px 0 var(--ink); animation: count-pop 1s ease-out both;
+}
+@keyframes count-pop { 0% { transform: translateX(-50%) scale(1.8); opacity: 0; } 20% { transform: translateX(-50%) scale(1); opacity: 1; } 85% { opacity: 1; } 100% { transform: translateX(-50%) scale(.8); opacity: 0; } }
+
+/* ---------------------------------------------------------------- unlockable hero items */
+.hero-opt { position: relative; }
+.hero-opt.locked .hero { filter: grayscale(1) brightness(.75); opacity: .55; }
+.hero-opt .lock { position: absolute; right: 4px; bottom: 4px; width: 28px; }
+.lock-hint { min-height: 1.4em; text-align: center; font-weight: 800; color: var(--purple); }
+.unlock-card { padding: 12px 18px; text-align: center; animation: hopin-c .5s cubic-bezier(.3, 1.6, .5, 1) both; }
+@keyframes hopin-c { from { transform: scale(0); } to { transform: scale(1); } }
+.unlock-title { font-size: 22px; font-weight: 900; }
+.unlock-items { display: flex; gap: 10px; justify-content: center; margin: 6px 0; }
+.unlock-hero { width: 90px; }
+.unlock-sub { font-size: 14px; font-weight: 700; opacity: .7; }

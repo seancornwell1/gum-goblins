@@ -25,6 +25,7 @@ function blank() {
     hero: { cape: 'blue', hat: 'none', brush: 'pink' },
     bigEscaped: false,
     worldByNight: {},
+    seenUnlocks: null, // hero items already announced
   };
 }
 
@@ -66,6 +67,8 @@ export const store = {
   get mornings() { return data.mornings; },
   get hero() { return data.hero; },
   setHero(part, value) { data.hero = { ...data.hero, [part]: value }; save(); },
+  get seenUnlocks() { return data.seenUnlocks; },
+  set seenUnlocks(v) { data.seenUnlocks = v; save(); },
   get bigEscaped() { return data.bigEscaped; },
   set bigEscaped(v) { data.bigEscaped = v; save(); },
 
@@ -85,9 +88,9 @@ export const store = {
   addMorningSun() { data.mornings[nightKey(new Date(Date.now() + 4 * 3600 * 1000))] = true; save(); },
 
   resetProgress() {
-    const { settings, hero } = data;
+    const { settings, hero, seenUnlocks } = data;
     data = blank();
-    Object.assign(data, { settings, hero });
+    Object.assign(data, { settings, hero, seenUnlocks });
     save();
   },
 };
