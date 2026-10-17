@@ -22,6 +22,11 @@ the easiest option:
    (about 30 MB, mostly the face detector) for offline use.
 5. On the first routine, allow camera access.
 
+If the address shows GitHub's 404 page, check the repo's **Actions** tab (top of
+the repo page) for a "pages build and deployment" run. Pages only builds on a
+push made after it was switched on, and the address must end in
+`/gum-goblins/`.
+
 ### Setup at the sink
 
 - Stand or mount the phone facing him, with his whole face in the frame.
