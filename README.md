@@ -70,7 +70,7 @@ Brushing starts with a 5-4-3-2-1 countdown.
 **Two players:** each kid has their own profile: hero, emoji collection,
 calendar and unlocks. Oliver's existing progress moved into his profile
 automatically. When you start any mode, a "Who's brushing?" picker offers
-Oliver, his sister or **Both**. To brush together, they stand side by side at
+Oliver, Juniper or **Both**. To brush together, they stand side by side at
 the sink: whoever is on the left of the mirror is player 1, on the right is
 player 2.
 
@@ -82,7 +82,9 @@ player 2.
   kid's emoji depends only on their own brushing.
 - They share one photo, with both new emoji as stickers, and the tray offers
   emoji from both collections. Collection and calendar have a tab for each kid.
-- Rename the second player, or turn the second player off, in parent settings.
+- Rename either kid, or turn the second player off, in parent settings.
+- With two players, each hero gets its own goblins on its own outer side (Oliver's
+  on the left, Juniper's on the right), so bolts never fly across the other hero.
 
 There's no narration, just a few short words on screen ("Big Goblin!", "Floss
 time!") and the zone name in the guide.
@@ -102,7 +104,9 @@ time!") and the zone name in the guide.
   a calm screen shows the buddy next to a face outline. When it has seen him again
   for about 1 s, the game picks up where it stopped. There's no penalty.
 - **Flossing:** quick and long, with 10 gaps of 3 seconds by default (up to 18
-  gaps, 9 top and 9 bottom). Front teeth first, then working outwards. A sneaky
+  gaps, 9 top and 9 bottom). It starts with a 3-2-1 countdown, then does the
+  whole top row left to right, then the bottom row (fewer gaps keeps the ones
+  nearest the front). A sneaky
   goblin pops up at each gap; when the gap fills, the hero zaps it and it runs
   off. Flossing can't be failed.
 - **Reward:** a random emoji he doesn't have yet, picked from tonight's world.

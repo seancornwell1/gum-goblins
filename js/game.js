@@ -7,7 +7,7 @@
 // own emoji from their own score; the goblins and the big goblin are shared.
 
 import { $, h, img, toast } from './dom.js';
-import { ART, ZONES, GAPS, SMALL_GOBLINS, catalog, allEmoji, preloadImages } from './assets.js';
+import { ART, ZONES, SMALL_GOBLINS, layout, catalog, allEmoji, preloadImages } from './assets.js';
 import { store } from './store.js';
 import { audio } from './audio.js';
 import { keepAwake } from './wake.js';
@@ -32,7 +32,19 @@ const SPAWN_MS = 3000;     // a new goblin arrives this often (per player)
 const MAX_GOBLINS = 10;    // per player
 const RING = [210, 240, 270, 300, 330, 20, 50, 130, 160];
 const OUTER = [225, 270, 315, 30, 150];
+// Two players: goblin spots on the left hero's outer side (mirrored for the right hero).
+const DUO_SIDE = [[180, 1], [208, 1], [152, 1], [234, 1], [128, 1],
+  [194, 1.55], [166, 1.55], [222, 1.55], [140, 1.55], [248, 1.4]];
 const GOLD_WEIGHT = 0.35;  // sparkly emoji are rarer than regular ones
+
+// Floss gaps: the whole top row, then the bottom row, each swept left to right.
+// Fewer gaps than the 9 per row keeps the ones nearest the front.
+function flossOrder(count) {
+  const row = (name, k) => [...Array(9).keys()].sort((a, b) => Math.abs(a - 4) - Math.abs(b - 4)).slice(0, k)
+    .sort((a, b) => a - b).map(i => `gap_${name}_${i}`).filter(id => layout.gaps[id]);
+  const top = Math.ceil(count / 2);
+  return [...row('top', top), ...row('bot', count - top)];
+}
 
 class Abort extends Error {}
 
@@ -154,9 +166,10 @@ export class Game {
     return { x: (x0 + x1) / 2, y: cs[0].y, w: x1 - x0, h: cs[0].h };
   }
 
-  placeAround(el, deg, radiusFactor = 1.0, halfSize = 50) {
+  // around: a hero index to circle just that hero (two-player games).
+  placeAround(el, deg, radiusFactor = 1.0, halfSize = 50, around = null) {
     const a = this.appRect();
-    const c = this.ring();
+    const c = around === null ? this.ring() : this.centerOf(this.heroes[around]);
     const rad = deg * Math.PI / 180;
     const rx = Math.max(c.w, c.h) * 0.62 * radiusFactor, ry = c.h * 0.62 * radiusFactor;
     const x = Math.max(halfSize, Math.min(a.width - halfSize, c.x + Math.cos(rad) * rx));
@@ -393,7 +406,7 @@ export class Game {
       const final = i === ZONES.length - 1;
       guide.show(z, i);
       if (!final) {
-        while (this.alive().length < 3 * n) this.spawnGoblin(z);
+        for (let k = 0; k < n; k++) while (this.alive(this.duo ? k : null).length < 3) this.spawnGoblin(z, this.duo ? k : null);
       } else {
         audio.playMusic('music_boss', 0.8);
         big = this.spawnBig();
@@ -409,14 +422,19 @@ export class Game {
         // New goblins keep arriving; brushing too slowly lets them pile up.
         if (!this.paused && !this.settingsOpen) {
           spawnClock += dt * this.speed * n;
-          if (spawnClock >= SPAWN_MS) { spawnClock = 0; if (this.alive().length < MAX_GOBLINS * n) this.spawnGoblin(z); }
+          if (spawnClock >= SPAWN_MS) {
+            spawnClock = 0;
+            // With two players, the new goblin goes to whoever has fewer.
+            const owner = this.duo ? (this.alive(0).length <= this.alive(1).length ? 0 : 1) : null;
+            if (this.alive(owner).length < MAX_GOBLINS) this.spawnGoblin(z, owner);
+          }
         }
         if (final) big.hp.style.transform = `scaleX(${1 - p})`;
         sts.forEach((st, k) => {
           this.heroes[k].classList.toggle('idle', !st.active);
           if (!st.active || !this.readyToShoot(st, lastShot[k])) return;
           lastShot[k] = st.now;
-          const target = this.nearestGoblin(k);
+          const target = this.alive(this.duo ? k : null)[0];
           if (target) {
             target.targeted = true;
             this.shoot(k, target.el, () => this.popGoblin(target));
@@ -495,30 +513,32 @@ export class Game {
     return freshStroke || since > interval + 600 / this.speed;
   }
 
-  alive() { return this.horde.filter(g => !g.popped && !g.targeted); }
-
-  // Each hero aims at the goblin closest to it.
-  nearestGoblin(p) {
-    const alive = this.alive();
-    if (!this.duo || !alive.length) return alive[0];
-    const hx = this.centerOf(this.heroes[p]).x;
-    return alive.reduce((best, g) =>
-      Math.abs(parseFloat(g.el.style.left) - hx) < Math.abs(parseFloat(best.el.style.left) - hx) ? g : best);
+  // Goblins still to be zapped; with two players, owner picks one hero's goblins.
+  alive(owner = null) {
+    return this.horde.filter(g => !g.popped && !g.targeted && (owner === null || g.owner === owner));
   }
 
-  spawnGoblin(zone) {
-    const taken = this.horde.filter(g => !g.popped).map(g => g.slot);
-    const preferred = ZONE_ANGLES[zone];
-    // Fill the current zone's spots first, then the rest of the ring, then outer rings.
-    const slot = [...preferred.map(a => [a, 1]), ...RING.map(a => [a, 1]), ...OUTER.map(a => [a, 1.45]),
-      ...RING.map(a => [a + 15, 1.3])]
-      .find(([a, r]) => !taken.some(t => t[0] === a && t[1] === r)) || [Math.random() * 360, 1.6];
+  // Spots for a goblin. Alone: around the hero, the current zone's side first.
+  // Two players: each hero has its own goblins on its own outer side, so no
+  // bolt ever flies across the other hero.
+  goblinSlots(zone, owner) {
+    if (owner === null) {
+      return [...ZONE_ANGLES[zone].map(a => [a, 1]), ...RING.map(a => [a, 1]), ...OUTER.map(a => [a, 1.45]),
+        ...RING.map(a => [a + 15, 1.3])];
+    }
+    return DUO_SIDE.map(([a, r]) => [owner ? (540 - a) % 360 : a, r]);
+  }
+
+  spawnGoblin(zone, owner = null) {
+    const taken = this.horde.filter(g => !g.popped && g.owner === owner).map(g => g.slot);
+    const slot = this.goblinSlots(zone, owner)
+      .find(([a, r]) => !taken.some(t => t[0] === a && t[1] === r)) || [owner === 1 ? 0 : 180, 1.7];
     const type = SMALL_GOBLINS[this.horde.length % SMALL_GOBLINS.length];
     const el = h('div', { class: 'sprite goblin enter' }, img(ART.goblin(type)));
     el.querySelector('img').style.animationDelay = `${-Math.random()}s`;
     this.stage.append(el);
-    this.placeAround(el, slot[0], slot[1], el.offsetWidth / 2 || 50);
-    const g = { el, slot, popped: false, targeted: false };
+    this.placeAround(el, slot[0], slot[1], el.offsetWidth / 2 || 50, owner);
+    const g = { el, slot, owner, popped: false, targeted: false };
     this.horde.push(g);
     if (this.horde.length > 3) audio.fx('giggle', { gain: 0.4, rate: 1.2 });
     return g;
@@ -563,23 +583,27 @@ export class Game {
   async flossing() {
     const s = store.settings;
     this.setStrip(NIGHT_STEPS, 2);
-    const gaps = GAPS.slice(0, s.flossGaps);
+    const gaps = flossOrder(s.flossGaps);
     const guide = new Guide('floss', gaps.length);
     guide.el.classList.add('floss');
     this.makeHeroes('ready');
     this.show(h('div', {}, guide.el));
     guide.show(gaps[0], 0);
     this.banner('Floss time!', 1000);
-    await this.sleep(600);
+    await this.sleep(1100);
+    await this.countdown(3);
     let skipping = false;
     for (let i = 0; i < gaps.length; i++) {
       const gap = gaps[i];
       guide.show(gap, i);
-      // A sneaky goblin peeks out somewhere around the heroes, never the same side twice.
-      const deg = (i * 137 + 200) % 360;
+      // A sneaky goblin peeks out somewhere around the heroes, never the same side
+      // twice. With two players they take turns, each zapping on their own side.
+      const shooter = i % this.players.length;
       const el = h('div', { class: 'sprite sneaky goblin enter' }, img(ART.goblin('sneaky')));
       this.stage.append(el);
-      const { x } = this.placeAround(el, deg, 0.95, 45);
+      const { x } = this.duo
+        ? this.placeAround(el, this.goblinSlots(null, shooter)[Math.floor(i / 2) % 5][0], 0.95, 45, shooter)
+        : this.placeAround(el, (i * 137 + 200) % 360, 0.95, 45);
       const res = skipping ? { skipped: true } : await this.track(s.flossSeconds, (p, sts, all) => {
         guide.setProgress(p);
         guide.setActive(all.active);
@@ -594,8 +618,7 @@ export class Game {
         setTimeout(() => el.remove(), 800);
       };
       if (skipping) runAway();
-      // With two players they take turns zapping.
-      else { this.shoot(i % this.players.length, el, runAway, 130); await this.sleep(150); }
+      else { this.shoot(shooter, el, runAway, 130); await this.sleep(150); }
     }
     guide.finish();
     this.heroes.forEach((el, p) => setPose(el, 'cheer', this.look(p)));

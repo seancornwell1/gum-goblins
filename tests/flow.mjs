@@ -166,7 +166,7 @@ await shot('20-duo-brushing');
 await page.evaluate(() => { window.__sim[1].inView = false; });
 await page.waitForTimeout(600);
 const pauseText = await page.textContent('#pause .pause-text');
-if (!pauseText.includes('Player 2')) throw new Error('pause should name player 2: ' + pauseText);
+if (!pauseText.includes('Juniper')) throw new Error('pause should name Juniper: ' + pauseText);
 await shot('21-duo-paused');
 await page.evaluate(() => { window.__sim[1].inView = true; });
 await until(new Function('return ' + hasText('Get your floss picks')), 90000);

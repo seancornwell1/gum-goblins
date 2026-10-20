@@ -2,7 +2,7 @@
 // from the cache. Nothing is ever sent anywhere. tools/build_sw.py fills in
 // the file list and version.
 
-const VERSION = '8ee2eedcc2b2';
+const VERSION = '086d6dce8ce1';
 const FILES = [
   "assets/audio/fx_chime.mp3",
   "assets/audio/fx_defeat.mp3",

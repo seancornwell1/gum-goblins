@@ -39,7 +39,7 @@ function blank() {
   return {
     settings: { ...DEFAULT_SETTINGS },
     worldByNight: {},
-    profiles: [blankKid('Oliver', 'blue'), blankKid('Player 2', 'red')],
+    profiles: [blankKid('Oliver', 'blue'), blankKid('Juniper', 'red')],
   };
 }
 
@@ -58,8 +58,9 @@ function load() {
       if (!JSON.parse(raw).profiles) {
         const kid = blankKid('Oliver', 'blue');
         for (const f of KID_FIELDS) if (d[f] !== undefined) { kid[f] = d[f]; delete d[f]; }
-        d.profiles = [kid, blankKid('Player 2', 'red')];
+        d.profiles = [kid, blankKid('Juniper', 'red')];
       }
+      if (d.profiles[1].name === 'Player 2') d.profiles[1].name = 'Juniper';
       return d;
     }
   } catch (e) { /* private mode or corrupted: start fresh */ }
