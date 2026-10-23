@@ -233,7 +233,11 @@ export class Game {
             sts.forEach((st, p) => { if (st.movingNow) moving[p] += dt; });
           }
         }
-        onTick(Math.min(1, clock / duration), sts.map(st => ({ ...st, active: active && st.brushing, now })), { active, now });
+        try {
+          onTick(Math.min(1, clock / duration), sts.map(st => ({ ...st, active: active && st.brushing, now })), { active, now });
+        } catch (e) {
+          console.error('tick failed', e); // keep going: a glitch in the effects must never freeze the routine
+        }
         if (clock >= duration) return resolve({ clock, moving });
         requestAnimationFrame(frame);
       };
@@ -399,7 +403,7 @@ export class Game {
 
     const wasEscaped = this.forEachKid(() => store.bigEscaped).some(Boolean);
     this.horde = [];
-    let clock = 0, skipping = false, photo = null, big = null;
+    let clock = 0, skipping = false, photo = null, photoTried = false, big = null;
     const moving = new Array(n).fill(0);
     for (let i = 0; i < ZONES.length; i++) {
       const z = ZONES[i];
@@ -409,18 +413,21 @@ export class Game {
         for (let k = 0; k < n; k++) while (this.alive(this.duo ? k : null).length < 3) this.spawnGoblin(z, this.duo ? k : null);
       } else {
         audio.playMusic('music_boss', 0.8);
+        // The big goblin sends the little ones away: the last zone is just the boss fight.
+        this.alive().forEach(g => { g.popped = true; g.el.classList.remove('enter'); g.el.classList.add('flee'); setTimeout(() => g.el.remove(), 2600); });
         big = this.spawnBig();
         this.banner(wasEscaped ? 'He’s back!' : 'Big Goblin!');
       }
       const lastShot = new Array(n).fill(performance.now());
-      let lastHit = 0, spawnClock = 0, lastNow = performance.now();
+      let spawnClock = 0, lastNow = performance.now();
       const res = skipping ? { clock: zoneDur, moving: moving.map(() => zoneDur), skipped: true } : await this.track(zoneDur, (p, sts, all) => {
         const dt = all.now - lastNow;
         lastNow = all.now;
         guide.setProgress(p);
         guide.setActive(all.active);
-        // New goblins keep arriving; brushing too slowly lets them pile up.
-        if (!this.paused && !this.settingsOpen) {
+        // New goblins keep arriving (until the big goblin comes); brushing too
+        // slowly lets them pile up.
+        if (!final && !this.paused && !this.settingsOpen) {
           spawnClock += dt * this.speed * n;
           if (spawnClock >= SPAWN_MS) {
             spawnClock = 0;
@@ -434,18 +441,24 @@ export class Game {
           this.heroes[k].classList.toggle('idle', !st.active);
           if (!st.active || !this.readyToShoot(st, lastShot[k])) return;
           lastShot[k] = st.now;
+          if (final) {
+            this.shoot(k, big.body, () => {
+              audio.fx('hit', { gain: 0.5 });
+              big.el.classList.add('hurt');
+              clearTimeout(big.hurtTimer);
+              big.hurtTimer = setTimeout(() => big.el.classList.remove('hurt'), 350);
+            });
+            return;
+          }
           const target = this.alive(this.duo ? k : null)[0];
           if (target) {
             target.targeted = true;
             this.shoot(k, target.el, () => this.popGoblin(target));
-          } else if (final) {
-            this.shoot(k, big.body, () => {
-              if (p - lastHit >= 0.05) { lastHit = p; big.el.classList.add('hurt'); setTimeout(() => big.el.classList.remove('hurt'), 350); }
-            });
           }
         });
-        if (final && !photo && p > 0.35 && sts.every(st => st.faceNow)) {
-          photo = this.tracker.snapshot();
+        if (final && !photoTried && p > 0.35 && sts.every(st => st.faceNow)) {
+          photoTried = true;
+          try { photo = this.tracker.snapshot(); } catch (e) { console.warn('photo failed', e); }
           if (photo) { const f = $('#flash'); f.classList.remove('go'); void f.offsetWidth; f.classList.add('go'); }
         }
       });

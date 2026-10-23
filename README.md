@@ -95,7 +95,8 @@ time!") and the zone name in the guide.
   only runs while his face is in view and there's movement at his mouth (brief
   pauses up to 2 s are allowed). Small goblins gather around the hero and pop as
   the hero zaps them. The big goblin takes the last zone, to a horns-and-snares
-  battle march.
+  battle march: when he arrives the little goblins run off, no new ones come,
+  and every bolt goes at him.
 - **Score:** the share of brushing time that had real movement. At or above the
   pass mark, the big goblin is beaten. Below it, he waddles off saying "I'll be
   back tomorrow!", there's no emoji that night, and he comes back the next night.

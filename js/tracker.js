@@ -113,6 +113,7 @@ export class Tracker {
 
   stop() {
     this.running = false;
+    clearTimeout(this.timer);
     this.stream?.getTracks().forEach(t => t.stop());
     this.stream = null;
     this.video.srcObject = null;
@@ -121,17 +122,16 @@ export class Tracker {
     this.available = this.sim ? true : false;
   }
 
+  // Runs on its own timer rather than video frame callbacks, which some phones
+  // stop sending, and survives a bad frame instead of stopping for good.
   loop() {
-    let lastRun = 0;
+    clearTimeout(this.timer);
     const tick = () => {
       if (!this.running || this.sim) return;
-      const now = performance.now();
-      if (now - lastRun >= DETECT_MS && this.video.readyState >= 2) {
-        lastRun = now;
-        this.process(now);
+      if (this.video.readyState >= 2) {
+        try { this.process(performance.now()); } catch (e) { console.warn('tracking frame skipped', e); }
       }
-      if (this.video.requestVideoFrameCallback) this.video.requestVideoFrameCallback(tick);
-      else requestAnimationFrame(tick);
+      this.timer = setTimeout(tick, DETECT_MS);
     };
     tick();
   }
