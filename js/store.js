@@ -18,6 +18,7 @@ export const DEFAULT_SETTINGS = {
   camera: true,
   sensitivity: 'medium',
   secondPlayer: true,
+  halloween: 'auto',
 };
 
 const KID_FIELDS = ['collection', 'nights', 'swish', 'mornings', 'hero', 'bigEscaped', 'seenUnlocks'];

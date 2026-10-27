@@ -431,6 +431,61 @@
      "name": "Fern"
     }
    ]
+  },
+  {
+   "id": "halloween",
+   "name": "Halloween",
+   "event": "halloween",
+   "emoji": [
+    {
+     "id": "halloween/jackolantern",
+     "name": "Jack-o'-Lantern"
+    },
+    {
+     "id": "halloween/ghost",
+     "name": "Little Ghost"
+    },
+    {
+     "id": "halloween/bat",
+     "name": "Bat"
+    },
+    {
+     "id": "halloween/candycorn",
+     "name": "Candy Corn"
+    },
+    {
+     "id": "halloween/witchhat",
+     "name": "Witch Hat"
+    },
+    {
+     "id": "halloween/blackcat",
+     "name": "Black Cat"
+    },
+    {
+     "id": "halloween/spider",
+     "name": "Friendly Spider"
+    },
+    {
+     "id": "halloween/cauldron",
+     "name": "Cauldron"
+    },
+    {
+     "id": "halloween/pail",
+     "name": "Treat Bucket"
+    },
+    {
+     "id": "halloween/haunted",
+     "name": "Haunted House"
+    },
+    {
+     "id": "halloween/broom",
+     "name": "Broomstick"
+    },
+    {
+     "id": "halloween/mummy",
+     "name": "Mummy"
+    }
+   ]
   }
  ]
 }

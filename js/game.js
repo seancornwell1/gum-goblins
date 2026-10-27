@@ -7,7 +7,7 @@
 // own emoji from their own score; the goblins and the big goblin are shared.
 
 import { $, h, img, toast } from './dom.js';
-import { ART, ZONES, SMALL_GOBLINS, layout, catalog, allEmoji, preloadImages } from './assets.js';
+import { ART, ZONES, SMALL_GOBLINS, layout, everydayWorlds, catalog, allEmoji, preloadImages } from './assets.js';
 import { store } from './store.js';
 import { audio } from './audio.js';
 import { keepAwake } from './wake.js';
@@ -16,6 +16,7 @@ import { heroEl, setPose } from './hero.js';
 import { photoEditor } from './photo.js';
 import { showCollection, showCalendar } from './books.js';
 import { takeNewUnlocks } from './unlocks.js';
+import { activeEvent } from './events.js';
 
 const NIGHT_STEPS = [['brush', 'Brush'], ['pick', 'Get your floss pick'], ['floss', 'Floss'], ['gift', 'Prize'], ['moon', 'Goodnight']];
 const MORNING_STEPS = [['brush', 'Brush'], ['sun_sticker', 'Sun sticker']];
@@ -339,7 +340,8 @@ export class Game {
   // ------------------------------------------------------------ night: brush & floss
 
   async nightRoutine() {
-    const world = store.worldForTonight(catalog.worlds.map(w => w.id));
+    // A special edition takes over the world; otherwise tonight's world is picked at random.
+    const world = activeEvent() || store.worldForTonight(everydayWorlds());
     this.preload(world);
     this.startCamera();
     const result = await this.brushing(world, NIGHT_STEPS);
@@ -352,8 +354,8 @@ export class Game {
   // ------------------------------------------------------------ morning: brush only
 
   async morningRoutine() {
-    const worlds = catalog.worlds.map(w => w.id);
-    const world = worlds[Math.floor(Math.random() * worlds.length)];
+    const worlds = everydayWorlds();
+    const world = activeEvent() || worlds[Math.floor(Math.random() * worlds.length)];
     this.preload(world);
     this.startCamera();
     await this.brushing(world, MORNING_STEPS);
@@ -389,13 +391,13 @@ export class Game {
     const n = this.players.length;
     this.setStrip(steps, 0);
     this.setBg(ART.world(world));
-    audio.playMusic('music_adventure');
+    audio.playMusic(activeEvent() ? 'music_halloween' : 'music_adventure');
     const zoneDur = (s.brushMinutes * 60) / ZONES.length;
     const guide = new Guide('brush', ZONES.length);
     this.makeHeroes('ready');
     this.show(h('div', {}, guide.el));
     guide.show(ZONES[0], 0);
-    this.banner(catalog.worlds.find(w => w.id === world).name + '!');
+    this.banner(activeEvent() ? 'Trick or Treat!' : catalog.worlds.find(w => w.id === world).name + '!');
     await this.sleep(1400);
     await this.countdown(5);
 
@@ -412,7 +414,7 @@ export class Game {
       if (!final) {
         for (let k = 0; k < n; k++) while (this.alive(this.duo ? k : null).length < 3) this.spawnGoblin(z, this.duo ? k : null);
       } else {
-        audio.playMusic('music_boss', 0.8);
+        audio.playMusic(activeEvent() ? 'music_halloween_boss' : 'music_boss', 0.8);
         // The big goblin sends the little ones away: the last zone is just the boss fight.
         this.alive().forEach(g => { g.popped = true; g.el.classList.remove('enter'); g.el.classList.add('flee'); setTimeout(() => g.el.remove(), 2600); });
         big = this.spawnBig();
@@ -662,7 +664,8 @@ export class Game {
       // A sparkly version can only turn up once its regular version is found.
       .forEach(e => { if (!e.gold) pool.push([e, 1]); else if (owned[e.base]) pool.push([e, GOLD_WEIGHT]); });
     consider(world);
-    if (!pool.length) catalog.worlds.forEach(w => consider(w.id));
+    // Event emoji can only be won while their event is on.
+    if (!pool.length) catalog.worlds.filter(w => !w.event || w.event === activeEvent()).forEach(w => consider(w.id));
     if (!pool.length) return null;
     let r = Math.random() * pool.reduce((t, [, wt]) => t + wt, 0);
     for (const [e, wt] of pool) { if ((r -= wt) <= 0) return e; }
@@ -785,7 +788,7 @@ export class Game {
   // ------------------------------------------------------------ swish
 
   async swishRoutine() {
-    this.setBg(ART.home);
+    this.setBg(ART.home());
     this.setStrip(SWISH_STEPS, 0);
     audio.playMusic('music_calm', 1.5);
     const ready = h('button', { class: 'btn blue' }, img(ART.icon('cup')), 'Ready!');

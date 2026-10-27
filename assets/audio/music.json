@@ -1,6 +1,12 @@
 {
  "loopStart": 1.0,
  "music": {
+  "music_halloween": {
+   "loop": 14.545454545454545
+  },
+  "music_halloween_boss": {
+   "loop": 30.476190476190474
+  },
   "music_adventure": {
    "loop": 16.271186440677965
   },

@@ -926,7 +926,9 @@ def main():
         write(f"goblins/{name}_sleep.svg", fn("closed"))
     for mode, suffix in [("open", ""), ("squint", "_hurt"), ("dizzy", "_dizzy"), ("closed", "_sleep")]:
         write(f"goblins/big{suffix}.svg", goblin_big(mode))
+    import art_halloween as HW
     hero = X.hero_files(write)
+    HW.hero_items(write, hero)
     with open(os.path.join(OUT, "hero", "parts.json"), "w") as f:
         json.dump(hero, f, indent=1)
     write("worlds/home.svg", bg_home())
@@ -942,6 +944,8 @@ def main():
             write(f"emoji/{wid}/{eid}_gold.svg", X.sparkly(content))
             items.append({"id": f"{wid}/{eid}", "name": label})
         catalog["worlds"].append({"id": wid, "name": title, "emoji": items})
+    # Limited-time event worlds: only played (and their emoji only won) during the event.
+    catalog["worlds"].append(HW.halloween_files(write, X.sparkly))
     with open(os.path.join(OUT, "emoji", "catalog.json"), "w") as f:
         json.dump(catalog, f, indent=1)
     mouth()

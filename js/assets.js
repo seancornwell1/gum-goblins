@@ -1,14 +1,17 @@
 // Paths to the generated art, plus the emoji catalogue, mouth-guide layout and
 // hero parts written by tools/gen_art.py.
 
+import { activeEvent } from './events.js';
+
 const I = 'assets/img/';
 
 export const ART = {
   icon: n => `${I}icons/${n}.svg`,
-  goblin: n => `${I}goblins/${n}.svg`,
+  // During Halloween the goblins wear costumes (a.svg -> a_hw.svg, big_hurt.svg -> big_hw_hurt.svg).
+  goblin: n => `${I}goblins/${activeEvent() === 'halloween' ? n.replace(/^(big|sneaky|a|b|c)(?=_|$)/, '$1_hw') : n}.svg`,
   hero: n => `${I}hero/${n}.svg`,
   world: (id, night = false) => `${I}worlds/${id}${night ? '_night' : ''}.svg`,
-  home: `${I}worlds/home.svg`,
+  home: () => `${I}worlds/home${activeEvent() === 'halloween' ? '_halloween' : ''}.svg`,
   emoji: id => `${I}emoji/${id}.svg`,
   guide: n => `${I}guide/${n}.svg`,
 };
@@ -45,6 +48,11 @@ export function allEmoji() {
 
 export function emojiInfo(id) {
   return allEmoji().find(e => e.id === id);
+}
+
+// Worlds that can come up on an ordinary night (not limited-time event worlds).
+export function everydayWorlds() {
+  return catalog.worlds.filter(w => !w.event).map(w => w.id);
 }
 
 export function worldName(id) {

@@ -5,6 +5,7 @@
 
 import { store } from './store.js';
 import { allEmoji } from './assets.js';
+import { EVENTS, inWindow } from './events.js';
 
 const FREE = ['cape:blue', 'cape:red', 'hat:none', 'hat:cap', 'brush:pink'];
 // The n-th morning brush unlocks the n-th item.
@@ -18,6 +19,16 @@ const ACHIEVEMENTS = [
   { item: 'hat:pirate', label: 'Find 25 emoji', done: s => s.emoji >= 25 },
   { item: 'cape:orange', label: 'Brush 7 nights in a row', done: s => s.streak >= 7 },
 ];
+
+// Limited-time items: earned by brushing (night or morning) during the event, kept forever.
+const EVENT_ITEMS = [
+  { item: 'cape:bat', event: 'halloween' },
+  { item: 'hat:pumpkin', event: 'halloween' },
+];
+
+export function isEventItem(part, value) {
+  return EVENT_ITEMS.some(e => e.item === `${part}:${value}`);
+}
 
 function stats() {
   const nights = Object.entries(store.nights).filter(([, n]) => n.done).map(([k]) => k).sort();
@@ -37,12 +48,15 @@ function stats() {
     emoji: owned.length,
     sparkly: owned.filter(id => gold.has(id)).length,
     mornings: Object.keys(store.mornings).length,
+    // Events brushed in: any night or morning inside the event's dates.
+    events: new Set(Object.keys(EVENTS).filter(id => [...nights, ...Object.keys(store.mornings)].some(k => inWindow(id, k)))),
   };
 }
 
 export function unlocked() {
   const s = stats();
-  return new Set([...FREE, ...MORNING.slice(0, s.mornings), ...ACHIEVEMENTS.filter(a => a.done(s)).map(a => a.item)]);
+  return new Set([...FREE, ...MORNING.slice(0, s.mornings), ...ACHIEVEMENTS.filter(a => a.done(s)).map(a => a.item),
+    ...EVENT_ITEMS.filter(e => s.events.has(e.event)).map(e => e.item)]);
 }
 
 export function isUnlocked(part, value, set = unlocked()) {
@@ -54,6 +68,8 @@ export function lockHint(part, value) {
   const item = `${part}:${value}`;
   const a = ACHIEVEMENTS.find(x => x.item === item);
   if (a) return a.label;
+  const ev = EVENT_ITEMS.find(x => x.item === item);
+  if (ev) return `Brush on ${EVENTS[ev.event].name} weekend`;
   const n = MORNING.indexOf(item) + 1 - stats().mornings;
   return n === 1 ? 'Do one more morning brush' : `Do ${n} more morning brushes`;
 }

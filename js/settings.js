@@ -4,6 +4,7 @@
 import { $, h, toast } from './dom.js';
 import { store } from './store.js';
 import { audio } from './audio.js';
+import { EVENTS } from './events.js';
 
 const HOLD_MS = 1500;
 
@@ -92,6 +93,9 @@ export function openSettings(ctx) {
       h('span', { class: 't', style: { marginTop: '10px' } }, 'Second player'),
       seg('secondPlayer', [true, false], v => (v ? 'On' : 'Off'), () => ctx.refreshHome()),
       h('small', {}, 'With two players, each has their own hero, collection and calendar. To brush together, stand side by side: player 1 on the left of the mirror, player 2 on the right.')),
+    h('div', { class: 'set' }, h('span', { class: 't' }, 'Halloween edition'),
+      seg('halloween', ['auto', 'on', 'off'], v => ({ auto: `Auto (${EVENTS.halloween.dates})`, on: 'On now', off: 'Off' }[v]), () => ctx.refreshHome()),
+      h('small', {}, 'Pumpkin Patch world, costumed goblins, Halloween music, 12 limited emoji and a pumpkin hat and bat cape to earn. “On now” is handy for a preview.')),
     h('div', { class: 'set' }, h('span', { class: 't' }, 'Brushing length'),
       seg('brushMinutes', [1, 2, 3], v => `${v} min`),
       h('small', {}, 'Six zones, always in the same order; each zone gets an equal share.')),

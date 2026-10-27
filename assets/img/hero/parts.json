@@ -5,7 +5,8 @@
   "green",
   "purple",
   "orange",
-  "pink"
+  "pink",
+  "bat"
  ],
  "brushes": [
   "pink",
@@ -21,7 +22,8 @@
   "wizard",
   "headband",
   "bunny",
-  "pirate"
+  "pirate",
+  "pumpkin"
  ],
  "poses": [
   "ready",

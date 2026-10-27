@@ -442,3 +442,9 @@ body.duo .hero.center { width: min(30vw, 18vh, 170px); }
 .names { display: flex; gap: 8px; }
 .names input { flex: 1; min-width: 0; font: inherit; font-size: 16px; padding: 8px 10px; border-radius: 10px; border: 2px solid #cbbfe6; }
 .hero-tag { position: absolute; left: 50%; bottom: -14px; transform: translateX(-50%); background: #fff; padding: 1px 10px; border-radius: 12px; box-shadow: 0 0 0 3px var(--ink); font-weight: 900; font-size: 14px; white-space: nowrap; }
+
+/* ---------------------------------------------------------------- Halloween edition */
+body.halloween .logo h1 { color: #ff8a1f; }
+body.halloween .logo h1 span { color: #c9a7ff; }
+.event-tag { margin-top: 8px; display: inline-block; background: #2b1a4f; color: #ffd27a; font-weight: 900; padding: 4px 14px; border-radius: 16px; box-shadow: 0 0 0 3px var(--ink); }
+.event-head { color: #d9620f; }

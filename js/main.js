@@ -9,7 +9,8 @@ import { Game } from './game.js';
 import { setupGear } from './settings.js';
 import { showCollection, showCalendar } from './books.js';
 import { heroEl } from './hero.js';
-import { unlocked, isUnlocked, lockHint, takeNewUnlocks } from './unlocks.js';
+import { unlocked, isUnlocked, lockHint, takeNewUnlocks, isEventItem } from './unlocks.js';
+import { activeEvent } from './events.js';
 
 const params = new URLSearchParams(location.search);
 const tracker = new Tracker($('#cam'));
@@ -67,7 +68,8 @@ function choosePlayers(kind) {
 function showHome() {
   if (game.running) return;
   store.use(0);
-  $('#bg').src = ART.home;
+  $('#bg').src = ART.home();
+  document.body.classList.toggle('halloween', activeEvent() === 'halloween');
   $('#bg').classList.remove('fade');
   $('#strip').replaceChildren();
   const tonight = store.players.some(i => store.profile(i).nights[nightKey()]?.done);
@@ -86,7 +88,8 @@ function showHome() {
     heroEl('ready', store.profile(i).hero), h('span', { class: 'edit-badge' }, '✎'),
     duo ? h('span', { class: 'hero-name' }, store.profile(i).name) : null);
   $('#screen').replaceChildren(h('div', { class: 'home' },
-    h('div', { class: 'logo' }, h('h1', {}, 'Gum', h('span', {}, 'Goblins'))),
+    h('div', { class: 'logo' }, h('h1', {}, 'Gum', h('span', {}, 'Goblins')),
+      activeEvent() === 'halloween' ? h('div', { class: 'event-tag' }, '🎃 Halloween Edition 🎃') : null),
     h('div', { class: `home-cast ${duo ? 'duo' : ''}` },
       img(ART.goblin('a'), 'g1'), ...store.players.map(heroButton), img(ART.goblin('c'), 'g2')),
     tonight ? h('div', { class: 'tonight' }, img(ART.icon('tooth_sticker')), 'Done tonight!') : null,
@@ -109,7 +112,7 @@ function showHeroEditor(profile) {
     const have = unlocked();
     preview.replaceChildren(heroEl('cheer', store.hero));
     const row = (title, part, options) => h('div', { class: 'hero-row' }, h('h3', {}, title),
-      h('div', { class: 'hero-options' }, options.map(opt => {
+      h('div', { class: 'hero-options' }, options.filter(opt => isUnlocked(part, opt, have) || !isEventItem(part, opt) || activeEvent()).map(opt => {
         const open = isUnlocked(part, opt, have);
         return h('button', {
           class: `hero-opt ${store.hero[part] === opt ? 'on' : ''} ${open ? '' : 'locked'}`, 'aria-label': `${part} ${opt}`,

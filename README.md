@@ -130,6 +130,25 @@ Worlds: street, forest, city, ocean, outer space, farm, candy land and dino
 valley, one picked at random each night. Each has 12 emoji plus their 12
 sparkly versions, so 192 to collect.
 
+## Halloween edition
+
+On Halloween weekend (the nights of Fri Oct 30 to Sun Nov 1, 2026), the game
+switches to a special edition automatically:
+
+- **Pumpkin Patch** world (jack-o'-lanterns, a cute haunted house, bats and
+  friendly ghosts) replaces the usual random world, with a Halloween home screen.
+- Goblins in costume (witch hats, bat wings, pumpkin hats), and the big goblin
+  in a vampire cape.
+- Halloween music while brushing and a minor-key version of the boss march.
+- 12 limited Halloween emoji (and their sparkly versions), only winnable that
+  weekend. Once won, they stay in the collection forever.
+- A **pumpkin hat** and **bat cape** for each kid's hero, earned by brushing
+  (night or morning) that weekend and kept afterwards.
+
+The parent setting **Halloween edition** is **Auto** by default (follows the
+dates). **On now** previews it any time, and **Off** skips it. To change the
+dates, edit `js/events.js`.
+
 ## Parent settings
 
 **Press and hold the gear (top right) for 1.5 seconds.** Settings:

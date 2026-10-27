@@ -5,6 +5,7 @@ import { $, h, img } from './dom.js';
 import { ART, catalog, allEmoji } from './assets.js';
 import { store, nightKey } from './store.js';
 import { audio } from './audio.js';
+import { activeEvent, EVENTS } from './events.js';
 
 function openSheet(...content) {
   const ov = $('#overlay');
@@ -40,11 +41,13 @@ export function showCollection(highlight = null, profile = 0) {
     const slot = e => owned[e.id]
       ? h('div', { class: `slot ${e.gold ? 'gold' : ''} ${e.id === highlight ? 'new' : ''}` }, img(ART.emoji(e.id)), h('span', {}, e.name))
       : h('div', { class: `slot missing ${e.gold ? 'gold' : ''}` }, img(ART.icon(e.gold ? 'mystery_gold' : 'mystery')), h('span', {}, '?'));
-    const sections = catalog.worlds.map(w => {
+    // Limited-time sets show while their event is on, or once any of them is won.
+    const shown = catalog.worlds.filter(w => !w.event || w.event === activeEvent() || all.some(e => e.world === w.id && owned[e.id]));
+    const sections = shown.map(w => {
       const items = all.filter(e => e.world === w.id);
       const got = items.filter(e => owned[e.id]).length;
       return [
-        h('h3', {}, h('span', {}, w.name), h('span', {}, `${got} / ${items.length}`)),
+        h('h3', { class: w.event ? 'event-head' : '' }, h('span', {}, w.event ? `🎃 ${w.name} (${EVENTS[w.event].dates} only)` : w.name), h('span', {}, `${got} / ${items.length}`)),
         h('div', { class: 'grid' }, items.filter(e => !e.gold).map(slot)),
         h('div', { class: 'grid sparkly' }, items.filter(e => e.gold).map(slot)),
       ];

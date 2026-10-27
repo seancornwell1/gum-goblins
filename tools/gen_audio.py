@@ -188,7 +188,7 @@ def lp_np(x, cutoff):
     return np.fft.irfft(X * H, len(x))
 
 
-INSTR = {"cymbal": inst_cymbal, "crash": inst_crash, "brass": lambda f, d, v: inst_brass(f, d, v), "pluck": inst_pluck, "lead": inst_lead, "bass": inst_bass, "pad": inst_pad,
+INSTR = {"organ": lambda f, d, v: inst_organ(f, d, v), "cymbal": inst_cymbal, "crash": inst_crash, "brass": lambda f, d, v: inst_brass(f, d, v), "pluck": inst_pluck, "lead": inst_lead, "bass": inst_bass, "pad": inst_pad,
          "marimba": inst_marimba, "musicbox": inst_musicbox, "kick": inst_kick,
          "snare": inst_snare, "shaker": inst_shaker, "tom": inst_tom}
 
@@ -349,6 +349,82 @@ def song_lullaby():
            ["G5", "E5", "C5"], ["D5", "E5", "D5"], ["C5", "D5", "B4"], ["C5", "-", "-"]]
     ev += melody(mel, 1, 0.22, "musicbox")
     return bpm, 24, ev
+
+
+def inst_organ(f, dur, vel):
+    """Spooky-fun theatre organ: stacked sines with a gentle wobble."""
+    n = int((dur + 0.3) * SR)
+    t = np.arange(n) / SR
+    wob = 1 + 0.006 * np.sin(2 * np.pi * 6 * t)
+    ph = 2 * np.pi * f * np.cumsum(wob) / SR
+    x = np.sin(ph) * 0.5 + np.sin(2 * ph) * 0.3 + np.sin(3 * ph) * 0.15 + np.sin(4 * ph) * 0.08
+    return x * env(n, a=0.02, d=0.05, s=0.85, r=0.15, hold=int(dur * SR)) * vel
+
+
+def song_halloween():
+    """Halloween brushing tune: a playful creepy-crawly minor-key romp."""
+    bpm, ev = 132, []
+    chords = [("D3", "m"), ("Bb2", ""), ("G2", "m"), ("A2", ""), ("D3", "m"), ("Bb2", ""), ("A2", ""), ("D3", "m")]
+    for bar, (root, kind) in enumerate(chords):
+        b0 = bar * 4
+        r = midi(root)
+        third = 3 if kind == "m" else 4
+        # tiptoeing staccato bass: root, fifth, octave, fifth
+        for k, iv in enumerate([0, 7, 12, 7, 0, 7, 12, 6 if bar % 2 else 7]):
+            ev.append((b0 + k * 0.5, 0.2, r - 12 + iv, 0.42, "bass"))
+        # organ chords on the off-beats
+        for off in (1, 3):
+            for iv in (0, third, 7):
+                ev.append((b0 + off, 0.6, r + 12 + iv, 0.06, "organ"))
+        ev += [(b0, 0.2, None, 0.4, "kick"), (b0 + 2, 0.2, None, 0.35, "kick"),
+               (b0 + 1, 0.2, None, 0.16, "snare"), (b0 + 3, 0.2, None, 0.16, "snare")]
+        ev += [(b0 + k * 0.5 + 0.25, 0.1, None, 0.05, "shaker") for k in range(8)]
+    mel = [["D5", "-", "F5", "A5", "G#5", "A5", "F5", "D5"], ["F5", "-", "D5", "-", "Bb4", "-", "D5", "-"],
+           ["G5", "-", "Bb5", "D6", "C#6", "D6", "Bb5", "G5"], ["A5", "-", "E5", "-", "C#5", "-", "E5", "-"],
+           ["D5", "-", "F5", "A5", "G#5", "A5", "D6", "-"], ["Bb5", "A5", "G5", "F5", "D5", "-", "F5", "-"],
+           ["E5", "F5", "G5", "A5", "C#6", "-", "E6", "-"], ["D6", "-", "A5", "-", "D5", "-", "-", "-"]]
+    ev += melody(mel, 0.5, 0.18, "pluck")
+    ev += [(b, d, n, 0.07, "organ") for b, d, n, v, i in melody(mel, 0.5, 0.18, "pluck")]
+    return bpm, 32, ev
+
+
+def song_halloween_boss():
+    """The big goblin's Halloween march: the battle march in a spooky minor key."""
+    bpm, ev = 126, []
+    chords = [("D3", "m"), ("Bb2", ""), ("C3", ""), ("A2", ""), ("D3", "m"), ("G2", "m"), ("A2", ""), ("A2", ""),
+              ("Bb2", ""), ("C3", ""), ("D3", "m"), ("A2", ""), ("G2", "m"), ("A2", ""), ("D3", "m"), ("D3", "m")]
+    snare_cells = [[1, 0, .6, .7], [1, 0, .6, 0], [1, 0, .6, .7], [.7, .6, .8, .9]]
+    for bar, (root, kind) in enumerate(chords):
+        b0 = bar * 4
+        r = midi(root)
+        ev.append((b0, 0.8, r - 12, 0.5, "bass"))
+        ev.append((b0 + 2, 0.8, r - 5, 0.45, "bass"))
+        for beat in (1, 3):
+            for n in chord_notes(r + 12, kind):
+                ev.append((b0 + beat, 0.35, n, 0.08, "brass"))
+                ev.append((b0 + beat, 0.35, n + 12, 0.04, "organ"))
+        roll = bar % 4 == 3
+        for beat in range(4):
+            for k, v in enumerate([.8, .55, .7, .85] if roll and beat >= 2 else snare_cells[beat]):
+                if v:
+                    ev.append((b0 + beat + k * 0.25, 0.1, None, 0.2 * v + (0.06 if k == 0 else 0), "snare"))
+        ev += [(b0, 0.2, None, 0.55, "kick"), (b0 + 2, 0.2, None, 0.5, "kick")]
+        ev += [(b0 + 1, 0.3, None, 0.1, "cymbal"), (b0 + 3, 0.3, None, 0.1, "cymbal")]
+        if bar % 4 == 0:
+            ev.append((b0, 1, None, 0.2, "crash"))
+    mel = [
+        ["D5", "-", "D5", "F5", "A5", "-", "F5", "D5"], ["Bb4", "-", "D5", "-", "F5", "-", "Bb5", "-"],
+        ["C6", "-", "Bb5", "A5", "G5", "-", "E5", "-"], ["C#5", "-", "-", "-", "E5", "-", "A5", "-"],
+        ["D6", "-", "D6", "C6", "A5", "-", "F5", "-"], ["G5", "-", "Bb5", "-", "D6", "-", "G5", "-"],
+        ["A5", "-", "C#6", "-", "E6", "-", "C#6", "-"], ["A5", "-", "-", "-", "-", "-", "-", "-"],
+        ["Bb5", "-", "Bb5", "C6", "D6", "-", "F6", "-"], ["E6", "-", "D6", "C6", "G5", "-", "C6", "-"],
+        ["D6", "-", "A5", "-", "F5", "-", "D6", "-"], ["C#6", "-", "-", "-", "A5", "-", "E5", "-"],
+        ["G5", "-", "Bb5", "-", "D6", "-", "G6", "-"], ["F6", "-", "E6", "-", "C#6", "-", "A5", "-"],
+        ["D6", "-", "F6", "-", "A6", "-", "F6", "-"], ["D6", "-", "-", "-", "A5", "-", "D6", "-"]]
+    horns = melody(mel, 0.5, 0.22, "brass")
+    ev += [(b, d, midi(n) - 12, v, i) for b, d, n, v, i in horns]
+    ev += [(b, d, n, 0.08, "organ") for b, d, n, v, i in horns]
+    return bpm, 64, ev
 
 
 def melody(bars, step, vel, ins):
@@ -547,7 +623,8 @@ def normalize(x, peak):
 def main():
     os.makedirs(OUT, exist_ok=True)
     meta = {"loopStart": LOOP_START, "music": {}}
-    for name, fn in [("music_adventure", song_adventure), ("music_boss", song_boss),
+    for name, fn in [("music_halloween", song_halloween), ("music_halloween_boss", song_halloween_boss),
+                     ("music_adventure", song_adventure), ("music_boss", song_boss),
                      ("music_calm", song_calm), ("music_lullaby", song_lullaby)]:
         bpm, beats, ev = fn()
         x, loop = render_song(bpm, beats, ev)
