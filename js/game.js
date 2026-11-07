@@ -421,7 +421,9 @@ export class Game {
         this.banner(wasEscaped ? 'He’s back!' : 'Big Goblin!');
       }
       const lastShot = new Array(n).fill(performance.now());
-      let spawnClock = 0, lastNow = performance.now();
+      // One spawn timer per player, offset so their goblins don't arrive in lockstep.
+      const spawnClock = this.players.map((_, k) => (k * SPAWN_MS) / n);
+      let lastNow = performance.now();
       const res = skipping ? { clock: zoneDur, moving: moving.map(() => zoneDur), skipped: true } : await this.track(zoneDur, (p, sts, all) => {
         const dt = all.now - lastNow;
         lastNow = all.now;
@@ -430,13 +432,14 @@ export class Game {
         // New goblins keep arriving (until the big goblin comes); brushing too
         // slowly lets them pile up.
         if (!final && !this.paused && !this.settingsOpen) {
-          spawnClock += dt * this.speed * n;
-          if (spawnClock >= SPAWN_MS) {
-            spawnClock = 0;
-            // With two players, the new goblin goes to whoever has fewer.
-            const owner = this.duo ? (this.alive(0).length <= this.alive(1).length ? 0 : 1) : null;
-            if (this.alive(owner).length < MAX_GOBLINS) this.spawnGoblin(z, owner);
-          }
+          spawnClock.forEach((c, k) => {
+            spawnClock[k] = c + dt * this.speed;
+            if (spawnClock[k] < SPAWN_MS) return;
+            spawnClock[k] = 0;
+            // Each kid gets their own goblins, whatever the other one is doing.
+            const owner = this.duo ? k : null;
+            if (this.onScreen(owner) < MAX_GOBLINS) this.spawnGoblin(z, owner);
+          });
         }
         if (final) big.hp.style.transform = `scaleX(${1 - p})`;
         sts.forEach((st, k) => {
@@ -542,6 +545,11 @@ export class Game {
         ...RING.map(a => [a + 15, 1.3])];
     }
     return DUO_SIDE.map(([a, r]) => [owner ? (540 - a) % 360 : a, r]);
+  }
+
+  // Goblins still on screen for a player, including ones a bolt is flying at.
+  onScreen(owner = null) {
+    return this.horde.filter(g => !g.popped && (owner === null || g.owner === owner)).length;
   }
 
   spawnGoblin(zone, owner = null) {
